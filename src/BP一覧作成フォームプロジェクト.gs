@@ -35,9 +35,9 @@ function sendEmail(formResponses) {
 function onSendChat(e) {
 
   // チャットスペース：協力会社委員会　（委員会メンバーの内部チャット）
-  // const WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAfPic_ks/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=nvLYJglx6es6vDcTru30XroCT9gftUpq1rNwziKsLJ4"
+  // const WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAfPic_ks/messages?☆☆☆
   // チャットスペース：協力会社委員会　（FI本部幹部通知用チャット）
-  const WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAnWJ7tYU/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cjOzt67ye8ZfC065Wf9iAiyONqVcM0kI_xdIqHcGt_8";
+  const WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAnWJ7tYU/messages?☆☆☆";
   
   // フォームの回答内容を格納する変数
   let message;
@@ -80,7 +80,7 @@ function onSendChat(e) {
     message = "【テスト】手動実行されました！\nこれはフォームの回答がない場合のテストメッセージです。\n";
   }
 
-  message += "BP情報一覧のURL： https://docs.google.com/spreadsheets/d/1-aPpSVwhBAF4DoD1xeydhYDalPS6h6S_WQEtn83ofAw/edit?gid=1528605409#gid=1528605409";
+  message += "BP情報一覧のURL： https://docs.google.com/spreadsheets/d/☆☆☆";
 
   // メッセージをJSON形式に整形
   const payload = {
@@ -114,7 +114,7 @@ function addEditUrlsToExistingResponses() {
   const form = FormApp.getActiveForm();
   const responses = form.getResponses(); // すべての回答を取得
   
-  const spreadsheet = SpreadsheetApp.openById("1-aPpSVwhBAF4DoD1xeydhYDalPS6h6S_WQEtn83ofAw");
+  const spreadsheet = SpreadsheetApp.openById("☆☆☆");
   const sheet = spreadsheet.getSheetByName("フォームの回答 2"); // 回答が記録されるシート名
 
   if (!sheet) {
