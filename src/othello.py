@@ -467,4 +467,5 @@ def main():
         current_turn = COMPUTER_STONE if current_turn == PLAYER_STONE else PLAYER_STONE  # ターン交代
 
 if __name__ == "__main__":
+
     main()
