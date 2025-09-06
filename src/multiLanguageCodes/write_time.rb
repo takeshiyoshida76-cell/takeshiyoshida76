@@ -3,7 +3,7 @@
 require 'time'
 
 # WriteTime module for writing timestamped logs.
-module WriteTime
+module write_time
   # Appends the current timestamp to a specified file.
   #
   # @param filename [String] The name of the file to write to.
