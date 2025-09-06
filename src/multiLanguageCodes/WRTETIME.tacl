@@ -1,27 +1,45 @@
 ?TACL MACRO
 #FRAME
+#PUSH
 
-#SET FILENAME "$MYVOL.MYSUBVOL.MYFILE"
+#COMMENT ----------------------------------------------------
+#COMMENT This TACL macro writes a log message with the current
+#COMMENT date and time to a specified file.
+#COMMENT ----------------------------------------------------
 
-! WRITE MESSAGE
-FUP WRITE &FILENAME, "THIS PROGRAM IS WRITTEN IN TACL"
+#SET &FILENAME "$MYVOL.MYSUBVOL.MYFILE"
 
-! GET SYSTEM DATETIME
-#SET DATETIME `DATE`   ! YYYYMMDD
-#SET CLOCKTIME `CLOCK` ! HHMMSS
+#COMMENT --- Get system date and time ---
+#SET &DATETIME `DATE`   ! YYYYMMDD
+#SET &CLOCKTIME `CLOCK` ! HHMMSS
 
-! EDIT MESSAGE
-#SET YEAR `SUBSTR(&DATETIME,1,4)`
-#SET MONTH `SUBSTR(&DATETIME,5,2)`
-#SET DAY `SUBSTR(&DATETIME,7,2)`
-#SET HOUR `SUBSTR(&CLOCKTIME,1,2)`
-#SET MINUTE `SUBSTR(&CLOCKTIME,3,2)`
-#SET SECOND `SUBSTR(&CLOCKTIME,5,2)`
+#COMMENT --- Format the date and time string ---
+#SET &YEAR `SUBSTR(&DATETIME,1,4)`
+#SET &MONTH `SUBSTR(&DATETIME,5,2)`
+#SET &DAY `SUBSTRTR(&DATETIME,7,2)`
+#SET &HOUR `SUBSTR(&CLOCKTIME,1,2)`
+#SET &MINUTE `SUBSTR(&CLOCKTIME,3,2)`
+#SET &SECOND `SUBSTR(&CLOCKTIME,5,2)`
 
-#SET NOWTIME &[YEAR]/[MONTH]/[DAY] &[HOUR]:[MINUTE]:[SECOND]
+#SET &NOWTIME "&[YEAR]/&[MONTH]/&[DAY] &[HOUR]:&[MINUTE]:&[SECOND]"
 
-! WRITE MESSAGE
-FUP WRITE &FILENAME, "CURRENT TIME = " &NOWTIME
+#COMMENT --- Write the messages to the file in append mode ---
+#COMMENT Using FUP ADD to append a new record to the file.
+FUP ADD &FILENAME, DATA, "THIS PROGRAM IS WRITTEN IN TACL"
+#IF #RESULT <> 0 THEN
+  #OUTPUTV An error occurred while writing the first line. #RESULT
+  #RETURN
+#ENDIF
 
+FUP ADD &FILENAME, DATA, "CURRENT TIME = " &NOWTIME
+#IF #RESULT <> 0 THEN
+  #OUTPUTV An error occurred while writing the time. #RESULT
+  #RETURN
+#ENDIF
+
+#COMMENT --- Success message ---
+#OUTPUTV Log messages successfully appended to file: &[FILENAME]
+
+#POP
 #UNFRAME
 RETURN
