@@ -8,7 +8,7 @@ int main() {
     char nowtime[20]; // YYYY/MM/DD HH:MM:SS
 
     // Open Outfile
-    outfile = fopen("MYFILE.TXT", "a");
+    outfile = fopen("MYFILE.txt", "a");
     if (outfile == NULL) {
         perror("Failed to open file");
         return 1;
