@@ -30,5 +30,5 @@ int main() {
     // Close Outfile
     fclose(outfile);
 
-     return 0;
+    return 0;
 }
