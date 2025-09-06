@@ -21,7 +21,7 @@ Each sample performs the following tasks:
 | Java     | `WriteTime.java` | Compile with `javac` |
 | Python   | `write_time.py` | Script, run directly |
 | Ruby     | `write_time.rb` | Script, run directly |
-| JavaScript | `writeTime.js`| Run with Node.js |
+| JavaScript | `write-time.js`| Run with Node.js |
 | Shell    | `write_time.sh`  | Run in Unix shell |
 | Groovy   | `WriteTime.groovy` | JVM scripting language |
 | Go       | `write_time.go`  | Use `go run` |
@@ -57,11 +57,11 @@ Other languages can be executed in a similar manner according to their respectiv
 (Example: running Python)
 ```
 This program was written in Python.
-Current time: 2025-09-007 07:54:30
+Current time: 2025-09-07 07:54:30
 ```
 
 ## Purpose
 
 - **Compare languages** by implementing the same logic across different ecosystems
 - **Demonstrate versatility** in both modern (Go, Kotln, Swift) and legacy (COBOL, C, TAL) languages
-- **Serve as a portfolio piece** to showcase practical, multi-language programing skills
+- **Serve as a portfolio piece** to showcase practical, multi-language programming skills
