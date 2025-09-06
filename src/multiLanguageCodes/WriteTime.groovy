@@ -9,7 +9,7 @@ def file = new File(filename)
 // Get System Datetime
 def nowtime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))
 
-def logMessage = "This program is written in TAL.\nCurrent Time = ${nowtime}\n"
+def logMessage = "This program is written in Groovy.\nCurrent Time = ${nowtime}\n"
 
 try {
     file.withWriterAppend { writer ->
