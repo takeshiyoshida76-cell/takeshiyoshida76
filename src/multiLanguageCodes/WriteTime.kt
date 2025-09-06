@@ -4,27 +4,47 @@ import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-fun main() {
-    // ファイル名
-    val filename = "MYFILE.TXT"
+/**
+ * A Kotlin application to write a timestamped log message to a file.
+ */
+class WriteTime {
 
-    // 現在時刻の取得とフォーマット
-    val now = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
-    val nowtime = now.format(formatter)
-
-    // ログメッセージの作成
-    val message = "This program is written in Kotlin.\nCurrent Time = $nowtime\n"
-
-    try {
-        // ファイルに追記。ファイルが存在しない場合は新規作成。
-        Files.write(
-            Paths.get(filename),
-            message.toByteArray(),
-            StandardOpenOption.CREATE,
-            StandardOpenOption.APPEND
-        )
-    } catch (e: Exception) {
-        println("ファイルへの書き込み中にエラーが発生しました: ${e.message}")
+    companion object {
+        // Use a constant for the filename for easy maintenance
+        private const val FILENAME = "MYFILE.txt"
     }
+
+    fun run() {
+        // Get the current system datetime and format it
+        val now = LocalDateTime.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
+        val nowtime = now.format(formatter)
+
+        // Create the log message using a template string
+        val message = "This program is written in Kotlin.\nCurrent Time = $nowtime\n"
+
+        // Use a try-catch block for robust error handling
+        try {
+            // Write to the file. This automatically creates the file if it doesn't exist
+            // and appends to it if it does.
+            Files.write(
+                Paths.get(FILENAME),
+                message.toByteArray(),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND
+            )
+            println("Successfully appended log to $FILENAME")
+        } catch (e: Exception) {
+            // Print a user-friendly error message to the standard error stream
+            System.err.println("ERROR: An error occurred while writing to the file.")
+            System.err.println("Details: ${e.message}")
+        }
+    }
+}
+
+/**
+ * The entry point of the application.
+ */
+fun main() {
+    WriteTime().run()
 }
