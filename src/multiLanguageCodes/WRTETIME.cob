@@ -1,11 +1,11 @@
        IDENTIFICATION          DIVISION.
-       PROGRAM-ID           .  TIMELOG.
+       PROGRAM-ID           .  WRTETIME.
        AUTHOR.                 TY.
        
        ENVIRONMENT             DIVISION.
        INPUT-OUTPUT            SECTION.
        FILE-CONTROL.
-       SELECT  OUT-FILE        ASSIGN  TO  "MYFILE.TXT"
+       SELECT  OUT-FILE        ASSIGN  TO  "MYFILE"
        ORGANIZATION            IS  LINE    SEQUENTIAL.
        
        DATA                    DIVISION.
