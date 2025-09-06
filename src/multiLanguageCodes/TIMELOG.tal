@@ -1,0 +1,32 @@
+PROC MAIN;
+VAR
+    NOWTIME   : STRING[20]; ! BUFFER TO STORE YYYY/MM/DD HH:MM:SS
+    DATESTAMP : STRING[8];  ! YYYYMMDD
+    TIMESTAMP : STRING[6];  ! HHMMSS
+    OUTFILE   : FILE;
+BEGIN
+    ! ---- OPEN OUTFILE ----
+    OPEN OUTFILE, "$MYVOL.MYSUBVOL.MYFILE", APPEND, CREATE;
+
+    ! ---- WRITE MESSAGE ----
+    WRITELN(OUTFILE, "THIS PROGRAM IS WRITTEN IN TAL.");
+
+    ! ---- GET SYSTEM DATETIME ----
+    DATESTAMP := DATE;       ! YYYYMMDD
+    TIMESTAMP := CLOCK;      ! HHMMSS
+
+    ! ---- EDIT DATETIME ----
+    NOWTIME := SUBSTR(DATESTAMP,1,4) & "/" &
+               SUBSTR(DATESTAMP,5,2) & "/" &
+               SUBSTR(DATESTAMP,7,2) & " " &
+               SUBSTR(TIMESTAMP,1,2) & ":" &
+               SUBSTR(TIMESTAMP,3,2) & ":" &
+               SUBSTR(TIMESTAMP,5,2);
+
+    ! ---- WRITE MESSAGE ----
+    WRITELN(OUTFILE, "CURRENT TIME = ", NOWTIME);
+
+    ! ---- CLOSE OUTFILE ----
+    CLOSE OUTFILE;
+
+END;
