@@ -29,3 +29,39 @@ Each sample performs the following tasks:
 | Kotlin   | `WriteTime.kt`   | JVM-based |
 | TAL      | `WRTETIME.tal`   | NonStop environment, Requires compilation |
 | TACL     | `WRTETIME.tacl`  | NonStop environment, Script |
+
+---
+
+## How to Run
+
+### Python
+```bash
+python write_time.py
+```
+
+### Java
+```bash
+javac WriteTime.java
+java WriteTime.java
+```
+
+### Go
+```bash
+go run WriteTime.go
+```
+
+Other languages can be executed in a similar manner according to their respective environments.
+
+## Example Output
+
+(Example: running Python)
+```
+This program was written in Python.
+Current time: 2025-09-007 07:54:30
+```
+
+## Purpose
+
+- **Compare languages** by implementing the same logic across different ecosystems
+- **Demonstrate versatility** in both modern (Go, Kotln, Swift) and legacy (COBOL, C, TAL) languages
+- **Serve as a portfolio piece** to showcase practical, multi-language programming skills
