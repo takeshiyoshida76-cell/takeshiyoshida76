@@ -64,4 +64,4 @@ Current time: 2025-09-007 07:54:30
 
 - **Compare languages** by implementing the same logic across different ecosystems
 - **Demonstrate versatility** in both modern (Go, Kotln, Swift) and legacy (COBOL, C, TAL) languages
-- **Serve as a portfolio piece** to showcase practical, multi-language programming skills
+- **Serve as a portfolio piece** to showcase practical, multi-language programing skills
