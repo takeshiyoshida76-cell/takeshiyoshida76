@@ -14,7 +14,7 @@ fun main() {
     val nowtime = now.format(formatter)
 
     // ログメッセージの作成
-    val message = "This program is written in TAL.\nCurrent Time = $nowtime\n"
+    val message = "This program is written in Kotlin.\nCurrent Time = $nowtime\n"
 
     try {
         // ファイルに追記。ファイルが存在しない場合は新規作成。
