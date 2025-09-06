@@ -1,38 +1,42 @@
 package main
 
 import (
-    "fmt"
-    "os"
-    "time"
+	"fmt"
+	"log"
+	"os"
+	"time"
 )
 
+// Main function to run the logging program.
 func main() {
-    // ファイル名
-    const filename = "MYFILE.txt"
+	const filename = "MYFILE.txt"
 
-    // 現在時刻をフォーマット
-    nowtime := time.Now().Format("2006/01/02 15:04:05")
+	// Create a log message with a timestamp.
+	nowtime := time.Now().Format("2006/01/02 15:04:05")
+	logMessage := fmt.Sprintf("This program is written in Go.\nCurrent Time = %s\n", nowtime)
 
-    // ファイルを追記モードで開く（存在しない場合は作成、書き込み専用）
-    file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-    if err != nil {
-        // エラーが発生した場合は、エラーメッセージを出力して終了
-        fmt.Fprintf(os.Stderr, "ファイルを開けませんでした: %v\n", err)
-        return
-    }
-    // 関数終了時にファイルを閉じることを保証
-    defer file.Close()
+	// Attempt to write the log message to the file.
+	if err := writeLog(filename, logMessage); err != nil {
+		log.Fatalf("Program terminated with an error: %v", err)
+	}
 
-    // ファイルにメッセージを書き込み
-    _, err = fmt.Fprintln(file, "This program is written in Go.")
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "ファイルへの書き込みに失敗しました: %v\n", err)
-        return
-    }
+	fmt.Printf("Successfully appended log to %s.\n", filename)
+}
 
-    _, err = fmt.Fprintf(file, "Current Time = %s\n", nowtime)
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "ファイルへの書き込みに失敗しました: %v\n", err)
-        return
-    }
+// writeLog appends a given message to a file, creating it if it doesn't exist.
+func writeLog(filename string, message string) error {
+	// Open the file in append mode. Create it if it doesn't exist.
+	// Use read-write permissions 0644 (read/write for owner, read-only for others).
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Write the message to the file.
+	if _, err := fmt.Fprint(file, message); err != nil {
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+
+	return nil
 }
