@@ -23,6 +23,8 @@ Each sample performs the following tasks:
 | Ruby     | `write_time.rb` | Script, run directly |
 | JavaScript | `write-time.js`| Run with Node.js |
 | Shell    | `write_time.sh`  | Run in Unix shell |
+| PowerShell | `write_time.psl` | Script for Windows |
+| WindowsBatch | `WRTETIME.bat` | Script for Windows Command Prompt |
 | Groovy   | `WriteTime.groovy` | JVM scripting language |
 | Go       | `write_time.go`  | Use `go run` |
 | Swift    | `WriteTime.swift`| macOS/iOS language |
