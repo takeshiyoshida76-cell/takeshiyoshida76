@@ -25,6 +25,7 @@ fi
 CURRENT_TIME=$(date +"%Y-%m-%d %H:%M:%S")
 
 # Write the timestamp to the file.
+echo "This program is written in ShellScript." >> "$OUTPUT_FILE"
 echo "Current time is: $CURRENT_TIME" > "$OUTPUT_FILE"
 
 # Check if the write operation was successful.
