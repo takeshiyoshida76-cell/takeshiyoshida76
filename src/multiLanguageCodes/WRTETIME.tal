@@ -16,7 +16,7 @@ BEGIN
     ! ---- OPEN OUTFILE ----
     OPEN OUTFILE, "$MYVOL.MYSUBVOL.MYFILE", APPEND, CREATE;
     ERRORCODE := #FERR;
-    IF ERRORCODE <> 0 THEN
+    IF <> THEN
         WRITELN($STDERR, "ERROR: Failed to open file. Error code: ", ERRORCODE);
         RETURN;
     END;
@@ -24,7 +24,7 @@ BEGIN
     ! ---- WRITE INITIAL MESSAGE ----
     WRITELN(OUTFILE, "THIS PROGRAM IS WRITTEN IN TAL.");
     ERRORCODE := #FERR;
-    IF ERRORCODE <> 0 THEN
+    IF <> THEN
         WRITELN($STDERR, "ERROR: Failed to write initial message. Error code: ", ERRORCODE);
         CLOSE OUTFILE;
         RETURN;
@@ -50,7 +50,7 @@ BEGIN
 
     WRITELN(OUTFILE, "CURRENT TIME = ", NOWTIME);
     ERRORCODE := #FERR;
-    IF ERRORCODE <> 0 THEN
+    IF <> THEN
         WRITELN($STDERR, "ERROR: Failed to write time. Error code: ", ERRORCODE);
         CLOSE OUTFILE;
         RETURN;
