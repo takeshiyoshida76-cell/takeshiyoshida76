@@ -1,19 +1,37 @@
 #!/bin/bash
 
-# Define the filename for the log.
-FILENAME="MYFILE.txt"
+# Define the output file.
+OUTPUT_FILE="MYFILE.txt"
 
-# Get the current system date and time in the specified format.
-# The `date` command with the `+` option formats the output.
-NOWTIME=$(date +"%Y/%m/%d %H:%M:%S")
+# Function to handle errors and exit.
+handle_error() {
+  # $1: The error message.
+  echo "Error: $1" >&2
+  exit 1
+}
 
-# Append the first message to the log file.
-# The `>>` operator appends the output to the end of the file, creating it if it doesn't exist.
-echo "This program is written in ShellScript." >> "$FILENAME"
+# Ensure the parent directory exists.
+# We skip this for the current file since it's an in-memory document.
+# If you were writing to a different file, you would need to check its directory.
 
-# Append the current timestamp to the log file.
-# The variable `$NOWTIME` is expanded to its value.
-echo "Current Time = $NOWTIME" >> "$FILENAME"
+# Check if the file is writable.
+if [ -e "$OUTPUT_FILE" ]; then
+  if [ ! -w "$OUTPUT_FILE" ]; then
+    handle_error "Permission denied: Cannot write to file '$OUTPUT_FILE'."
+  fi
+fi
 
-# Display a confirmation message to the user.
-echo "Log appended to '$FILENAME'."
+# Get the current date and time.
+CURRENT_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+
+# Write the timestamp to the file.
+echo "Current time is: $CURRENT_TIME" > "$OUTPUT_FILE"
+
+# Check if the write operation was successful.
+if [ $? -ne 0 ]; then
+  handle_error "Failed to write to file '$OUTPUT_FILE'."
+fi
+
+echo "Successfully wrote current time to '$OUTPUT_FILE'."
+
+exit 0
