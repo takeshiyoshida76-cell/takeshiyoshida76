@@ -15,22 +15,22 @@ Each sample performs the following tasks:
 ## Languages and Files
 | Language | File Name | Notes |
 | -------- | --------- | ----- |
-| COBOL    | `WRTETIME.cob`   | Requires compilation |
-| VBScript | `WriteTime.vbs`  | Windows environment |
-| C        | `write_time.c` | Requires compilation |
-| Java     | `WriteTime.java` | Compile with `javac` |
-| Python   | `write_time.py` | Script, run directly |
-| Ruby     | `write_time.rb` | Script, run directly |
-| JavaScript | `write-time.js`| Run with Node.js |
-| Shell    | `write_time.sh`  | Run in Unix shell |
-| PowerShell | `write_time.ps1` | Script for Windows shell |
-| WindowsBatch | `WRTETIME.bat` | Script for Windows Command Prompt |
-| Groovy   | `WriteTime.groovy` | JVM scripting language |
-| Go       | `write_time.go`  | Use `go run` |
-| Swift    | `WriteTime.swift`| macOS/iOS language |
-| Kotlin   | `WriteTime.kt`   | JVM-based |
-| TAL      | `WRTETIME.tal`   | NonStop environment, Requires compilation |
-| TACL     | `WRTETIME.tacl`  | NonStop environment, Script |
+| COBOL    | `WRTETIME.cob`   | 企業システムで長年使われるビジネス指向言語。金融・会計分野で特に普及。 |
+| VBScript | `WriteTime.vbs`  | Microsoftのスクリプト言語。Windows環境での自動化やレガシー業務アプリに利用。|
+| C        | `write_time.c` | 古典的な低レベル言語。OSや組み込みなどシステムプログラミングで利用される。 |
+| Java     | `WriteTime.java` | オブジェクト指向言語。エンタープライズ開発の主流。JVM上で動作し、クロスプラットフォーム対応。 |
+| Python   | `write_time.py` | シンプルで可読性の高いスクリプト言語。Web・データ分析・AIまで幅広く利用。 |
+| Ruby     | `write_time.rb` | 日本発のスクリプト言語。Ruby on RailsによりWeb開発に広く普及。 |
+| JavaScript | `write-time.js`| WebブラウザやNode.jsで動作。フロントエンド〜サーバーサイドまで幅広く利用。 |
+| Shell    | `write_time.sh`  | Unix/Linuxシェル環境で動くスクリプト。システム管理や自動化で広く利用。 |
+| PowerShell | `write_time.ps1` | Windows標準シェル。オブジェクト指向のコマンド体系を持ち、管理・自動化に強い。 |
+| WindowsBatch | `WRTETIME.bat` | Windowsの古典的バッチスクリプト。簡単なタスク自動化やバッチ処理に利用。 |
+| Groovy   | `WriteTime.groovy` | Java上で動くスクリプト言語。簡潔な記法。JenkinsパイプラインやGradleに利用。 |
+| Go       | `write_time.go`  | Google開発のシステム言語。高速コンパイルとシンプルな文法。goroutineによる並行処理が得意。 |
+| Swift    | `WriteTime.swift`| Appleの公式言語。iOS/macOSアプリ開発に利用。モダンで安全。 |
+| Kotlin   | `WriteTime.kt`   | JetBrains開発。JVM上で動作し、Javaより簡潔で安全。Androidの公式言語。 |
+| TAL      | `WRTETIME.tal`   | NonStopシステム用。Cに似た文法で耐障害性のあるアプリ開発に利用。 |
+| TACL     | `WRTETIME.tacl`  | NonStopシステムのシェル/スクリプト言語。システム制御・運用自動化に用いられる。 |
 
 ---
 
