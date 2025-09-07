@@ -3,62 +3,59 @@
 ! to a specified file.
 ! 
 ! This program is designed to be compiled and run on a NonStop server.
-
 PROC MAIN;
 VAR
-    NOWTIME   : STRING[20]; ! Formatted date and time string: YYYY/MM/DD HH:MM:SS
-    DATESTAMP : STRING[8];  ! YYYYMMDD
-    TIMESTAMP : STRING[6];  ! HHMMSS
     OUTFILE   : FILE;
-    ERRORCODE : WORD;       ! Variable to capture error status
+    DATESTAMP : ARRAY[1:8] OF CHAR;   ! YYYYMMDD
+    TIMESTAMP : ARRAY[1:6] OF CHAR;   ! HHMMSS
+    NOWTIME   : ARRAY[1:19] OF CHAR;  ! "YYYY/MM/DD HH:MM:SS"
+    I         : INT;
+    ERRORCODE : WORD;
 
 BEGIN
     ! ---- OPEN OUTFILE ----
-    ! Use the APPEND and CREATE options to ensure the file is created if it
-    ! doesn't exist, and new data is added to the end.
     OPEN OUTFILE, "$MYVOL.MYSUBVOL.MYFILE", APPEND, CREATE;
     ERRORCODE := #FERR;
-
     IF ERRORCODE <> 0 THEN
-        BEGIN
-            WRITELN($STDERR, "ERROR: Failed to open file. Error code: ", ERRORCODE);
-            RETURN;
-        END;
+        WRITELN($STDERR, "ERROR: Failed to open file. Error code: ", ERRORCODE);
+        RETURN;
+    END;
 
     ! ---- WRITE INITIAL MESSAGE ----
     WRITELN(OUTFILE, "THIS PROGRAM IS WRITTEN IN TAL.");
     ERRORCODE := #FERR;
     IF ERRORCODE <> 0 THEN
-        BEGIN
-            WRITELN($STDERR, "ERROR: Failed to write initial message. Error code: ", ERRORCODE);
-            CLOSE OUTFILE;
-            RETURN;
-        END;
+        WRITELN($STDERR, "ERROR: Failed to write initial message. Error code: ", ERRORCODE);
+        CLOSE OUTFILE;
+        RETURN;
+    END;
 
     ! ---- GET SYSTEM DATETIME ----
-    DATESTAMP := DATE;
-    TIMESTAMP := CLOCK;
+    DATESTAMP := DATE;   ! 8char: YYYYMMDD
+    TIMESTAMP := CLOCK;  ! 6char: HHMMSS
 
     ! ---- FORMAT DATETIME STRING ----
-    NOWTIME := SUBSTR(DATESTAMP,1,4) & "/" &
-               SUBSTR(DATESTAMP,5,2) & "/" &
-               SUBSTR(DATESTAMP,7,2) & " " &
-               SUBSTR(TIMESTAMP,1,2) & ":" &
-               SUBSTR(TIMESTAMP,3,2) & ":" &
-               SUBSTR(TIMESTAMP,5,2);
+    ! NOWTIME = YYYY/MM/DD HH:MM:SS
+    FOR I := 1 TO 4 DO NOWTIME[I] := DATESTAMP[I];           ! YYYY
+    NOWTIME[5] := '/';
+    NOWTIME[6] := DATESTAMP[5]; NOWTIME[7] := DATESTAMP[6];  ! MM
+    NOWTIME[8] := '/';
+    NOWTIME[9] := DATESTAMP[7]; NOWTIME[10] := DATESTAMP[8]; ! DD
+    NOWTIME[11] := ' ';
+    NOWTIME[12] := TIMESTAMP[1]; NOWTIME[13] := TIMESTAMP[2];! HH
+    NOWTIME[14] := ':';
+    NOWTIME[15] := TIMESTAMP[3]; NOWTIME[16] := TIMESTAMP[4];! MM
+    NOWTIME[17] := ':';
+    NOWTIME[18] := TIMESTAMP[5]; NOWTIME[19] := TIMESTAMP[6];! SS
 
-    ! ---- WRITE FORMATTED DATETIME ----
     WRITELN(OUTFILE, "CURRENT TIME = ", NOWTIME);
     ERRORCODE := #FERR;
     IF ERRORCODE <> 0 THEN
-        BEGIN
-            WRITELN($STDERR, "ERROR: Failed to write time. Error code: ", ERRORCODE);
-            CLOSE OUTFILE;
-            RETURN;
-        END;
+        WRITELN($STDERR, "ERROR: Failed to write time. Error code: ", ERRORCODE);
+        CLOSE OUTFILE;
+        RETURN;
+    END;
 
-    ! ---- CLOSE OUTFILE ----
     CLOSE OUTFILE;
     WRITELN($STDOUT, "Log successfully written to file: $MYVOL.MYSUBVOL.MYFILE");
-
 END;
