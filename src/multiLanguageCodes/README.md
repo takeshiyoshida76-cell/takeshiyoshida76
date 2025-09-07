@@ -20,7 +20,7 @@ Each sample performs the following tasks:
 | C        | `write_time.c` | Requires compilation |
 | Java     | `WriteTime.java` | Compile with `javac` |
 | Python   | `write_time.py` | Script, run directly |
-| Ruby     | `WriteTime.rb` | Script, run directly |
+| Ruby     | `write_time.rb` | Script, run directly |
 | JavaScript | `write-time.js`| Run with Node.js |
 | Shell    | `write_time.sh`  | Run in Unix shell |
 | PowerShell | `write_time.ps1` | Script for Windows shell |
