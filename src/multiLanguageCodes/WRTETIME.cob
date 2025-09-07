@@ -22,9 +22,15 @@
        
        01 WS-DATE-TIME-DATA.
           05 WS-CURRENT-DATE               PIC 9(8).
+          05 WS-CURRENT-DATE-R             REDEFINES WS-CURRENT-DATE.
+            10 WS-CURRENT-YEAR             PIC 9(4).
+            10 WS-CURRENT-MONTH            PIC 9(2).
+            10 WS-CURRENT-DAY              PIC 9(2).
           05 WS-CURRENT-TIME               PIC 9(6).
-          05 WS-CURRENT-MILLISEC           PIC 9(2).
-          05 WS-CURRENT-GMT                PIC S9(4).
+          05 WS-CURRENT-TIME-R             REDEFINES WS-CURRENT-TIME.
+            10 WS-CURRENT-HOUR             PIC 9(2).
+            10 WS-CURRENT-MINUTE           PIC 9(2).
+            10 WS-CURRENT-SECOND           PIC 9(2).
 
        01 WS-FORMATTED-DATE-TIME.
           05 WS-YEAR                       PIC 9(4).
@@ -46,7 +52,7 @@
        01 WS-TIME-LINE.
           05 FILLER                        PIC X(15)
              VALUE "CURRENT TIME = ".
-          05 WS-TIME-PART                  PIC X(16).
+          05 WS-TIME-PART                  PIC X(20).
 
        PROCEDURE                           DIVISION.
        MAIN-LOGIC                          SECTION.
@@ -66,12 +72,16 @@
            END-IF.
            
       * GET CURRENT DATE AND TIME FROM SYSTEM.
-           ACCEPT WS-DATE-TIME-DATA FROM DATE YYYYMMDD.
-           ACCEPT WS-DATE-TIME-DATA FROM TIME HHMMSS.
+           ACCEPT WS-CURRENT-DATE FROM DATE YYYYMMDD.
+           ACCEPT WS-CURRENT-TIME FROM TIME HHMMSS.
 
       * MOVE COMPONENTS TO THE FORMATTED OUTPUT VARIABLE.
-           MOVE WS-CURRENT-DATE TO WS-FORMATTED-DATE-TIME.
-           MOVE WS-CURRENT-TIME TO WS-FORMATTED-DATE-TIME.
+           MOVE WS-CURRENT-YEAR   TO WS-YEAR.
+           MOVE WS-CURRENT-MONTH  TO WS-MONTH.
+           MOVE WS-CURRENT-DAY    TO WS-DAY.
+           MOVE WS-CURRENT-HOUR   TO WS-HOUR.
+           MOVE WS-CURRENT-MINUTE TO WS-MINUTE.
+           MOVE WS-CURRENT-SECOND TO WS-SECOND.
 
       * MOVE FORMATTED TIME STRING TO OUTPUT LINE.
            MOVE WS-FORMATTED-DATE-TIME TO WS-TIME-PART.
