@@ -50,8 +50,8 @@ Akashiのログインは、セッション管理とCSRFトークンを伴う一�
 | **氏名** (`name`) | `<td>` (Index 1) | **名字のみ**を抽出し、通知対象の判定に使用 |
 | **実績出勤** (`stampStart`) | `<td>` (Index 2) | `HH:MM` または 未打刻時は `--:--` |
 | **実績退勤** (`stampEnd`) | `<td>` (Index 2) | `HH:MM` または 未打刻時は `--:--` |
-| **予定出勤** (`scheduledStart`) | `<td>` (Index 5) | `HH:MM` または 未設定時は `--:--` |
-| **予定退勤** (`scheduledEnd`) | `<td>` (Index 5) | `HH:MM` または 未設定時は `--:--` |
+| **予定出勤** (`scheduledStart`) | `<td>` (Index 4) | `HH:MM` または 未設定時は `--:--` |
+| **予定退勤** (`scheduledEnd`) | `<td>` (Index 4) | `HH:MM` または 未設定時は `--:--` |
 
 ### 3.2 打刻漏れチェックロジック
 
