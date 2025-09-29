@@ -19,10 +19,10 @@ const MANAGER_URL = 'https://atnd.ak4.jp/ja/manager';
 const ROOT_JA_URL = 'https://atnd.ak4.jp/ja'; 
 const CURRENT_ATTENDANCE_URL = 'https://atnd.ak4.jp/ja/manager/current_attendance_status';
 
-// 勤怠サマリURLを日付なしの当日版に固定
+// 勤怠サマリURL
 const ATTENDANCE_URL = 'https://atnd.ak4.jp/ja/manager/daily_summary'; 
 
-// 安定したUser-Agentに固定
+// User-Agent
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 // ==============================================================================
@@ -162,11 +162,12 @@ function checkAttendance(sessionCookie) {
       
       const nowTime = now.getTime();
 
+      Logger.log('チェック情報: 氏名:' + employee.name + ' 予定開始:' + employee.scheduledStart + ' 予定終了:' + employee.scheduledEnd + ' 打刻開始:' + employee.stampStart + ' 打刻終了:' + employee.stampEnd);
       // 1. 出勤打刻漏れチェック (予定開始時刻が設定されている場合)
       if (employee.scheduledStart !== '--:--') {
         const scheduledStartTime = parseTime(employee.scheduledStart, now);
         
-        // 【修正点2】予定出勤時刻の5分前を通知開始時刻とする
+        // 予定出勤時刻の5分前を通知開始時刻とする
         const fiveMinutesBefore = scheduledStartTime.getTime() - 5 * 60 * 1000;
 
         // 実績出勤時刻が未入力かつ、通知時刻（5分前）を過ぎている場合
@@ -179,7 +180,7 @@ function checkAttendance(sessionCookie) {
       if (employee.scheduledEnd !== '--:--') {
         const scheduledEndTime = parseTime(employee.scheduledEnd, now);
         
-        // 【修正点3】予定退勤時刻の15分後を通知開始時刻とする
+        // 予定退勤時刻の15分後を通知開始時刻とする
         const fifteenMinutesAfter = scheduledEndTime.getTime() + 15 * 60 * 1000;
         
         // 実績退勤時刻が未入力かつ、通知時刻（15分後）を過ぎている場合
@@ -439,7 +440,24 @@ function sendToGoogleChat(message) {
     return;
   }
 
-  const payload = { text: message };
+  const MESSAGES = {
+    "text": message,
+    "annotations": [
+      {
+        "type": "USER_MENTION",
+        "start_index": 0,
+        "length": 11, // "<users/all>" の文字数
+        "user_mention": {
+          "user": {
+            "name": "users/all",
+          }
+        }
+      }
+    ]
+  };
+
+  // メッセージをJSON文字列に変換
+  const payload = JSON.stringify(MESSAGES);
   const options = {
     method: 'post',
     contentType: 'application/json',
@@ -478,7 +496,6 @@ function parseAttendanceHTML(html) {
     let scheduledEnd = '--:--';
     let stampStart = '--:--';
     let stampEnd = '--:--';
-    let workStatus = ''; 
     
     // <td>...</td> の中身（コンテンツ部分）を全て抽出
     const cellContents = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
@@ -503,24 +520,14 @@ function parseAttendanceHTML(html) {
         stampEnd = stampTimeMatches[1] || '--:--';
 
 
-        // --- 3. 勤務区分と予定時刻の抽出 (Index 5) ---
-        let workCell = cellContents[5];
+        // --- 3. 予定時刻の抽出 (Index 4) ---
+        let workCell = cellContents[4];
         
         // 予定時刻の抽出
         const scheduledTimeMatches = workCell.match(/(\d{2}:\d{2})/g) || [];
         scheduledStart = scheduledTimeMatches[0] || '--:--';
         scheduledEnd = scheduledTimeMatches[1] || '--:--';
         
-        // 勤務区分の抽出
-        workStatus = workCell.replace(/<[^>]*>/g, ' ')
-                             .replace(/&nbsp;/g, ' ')
-                             .replace(/\d{2}:\d{2}/g, ' ')
-                             .replace(/\s+/g, ' ')
-                             .trim();
-        const statusParts = workStatus.split(' ');
-        workStatus = statusParts[statusParts.length - 1]; 
-
-
         if (name && name.length > 0) {
             const employeeRecord = { 
                 name, 
@@ -528,7 +535,6 @@ function parseAttendanceHTML(html) {
                 stampEnd, 
                 scheduledStart, 
                 scheduledEnd,
-                workStatus 
             };
             employees.push(employeeRecord);
             
