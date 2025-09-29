@@ -6,6 +6,8 @@
  * 1. 勤怠サマリURLは日付なし (当日チェック) に固定。
  * 2. 出勤通知: 予定開始時刻の5分前以降、未打刻なら通知。
  * 3. 退勤通知: 予定終了時刻の15分後以降、未打刻なら通知。
+ * 4. 理由欄 に '残業終了=HH:MM' の形式で残業終了時刻が記載されていた場合、
+ * その HH:MM を新しい退勤予定時刻として採用し、チェックに使用する。
  */
 
 // ==============================================================================
@@ -531,6 +533,21 @@ function parseAttendanceHTML(html) {
         scheduledStart = scheduledTimeMatches[0] || '--:--';
         scheduledEnd = scheduledTimeMatches[1] || '--:--';
         
+        const originalScheduledEnd = scheduledEnd; 
+        
+        // --- 4. 理由欄から残業終了時刻を取得 (Index 11) ---
+        let reasonCell = cellContents[11];
+        reasonText = reasonCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        // 「残業終了=HH:MM」の形式を検索
+        const overtimeMatch = reasonText.match(/残業終了=(\d{2}:\d{2})/);
+        
+        if (overtimeMatch && overtimeMatch[1]) {
+            const newEndTime = overtimeMatch[1];
+            Logger.log(`情報: ${name} の理由欄から残業終了時刻 ${newEndTime} を検出しました。退勤予定を上書きします。`);
+            scheduledEnd = newEndTime; // 退勤予定時刻を上書き
+        }
+
         if (name && name.length > 0) {
             const employeeRecord = { 
                 name, 
