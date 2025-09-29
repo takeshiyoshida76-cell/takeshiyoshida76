@@ -440,13 +440,15 @@ function sendToGoogleChat(message) {
     return;
   }
 
-  const MESSAGES = {
-    "text": message,
+  // 1. 送信するJSONオブジェクトを定義
+  const payloadObject = {
+    "text": "<users/all>" + message, // @allタグをメッセージの先頭に結合
     "annotations": [
       {
         "type": "USER_MENTION",
         "start_index": 0,
-        "length": 11, // "<users/all>" の文字数
+        // @allタグの文字数分（通常は11文字）
+        "length": 11, 
         "user_mention": {
           "user": {
             "name": "users/all",
@@ -456,21 +458,22 @@ function sendToGoogleChat(message) {
     ]
   };
 
-  // メッセージをJSON文字列に変換
-  const payload = JSON.stringify(MESSAGES);
   const options = {
     method: 'post',
+    // 2. payloadにオブジェクトを直接渡し、GASにJSON化させる
     contentType: 'application/json',
-    payload: JSON.stringify(payload),
+    payload: JSON.stringify(payloadObject), // ここはstringify(payloadObject)を維持
     muteHttpExceptions: true
   };
 
+  // ... (try-catchブロックはそのまま)
+  
   try {
     const response = UrlFetchApp.fetch(webhookUrl, options);
     const statusCode = response.getResponseCode();
     Logger.log(`情報: Google Chat送信ステータスコード: ${statusCode}`);
     if (statusCode !== 200) {
-      Logger.log(`エラー: Google Chat送信エラー: ステータスコード ${statusCode}`);
+      Logger.log(`エラー: Google Chat送信エラー: ステータスコード ${statusCode}, レスポンス: ${response.getContentText()}`);
     }
   } catch (e) {
     Logger.log(`エラー: Google Chat送信エラー: ${e.message}`);
