@@ -15,7 +15,7 @@
 // ==============================================================================
 
 // 通知対象の氏名を設定 (空の場合は全員が対象)。名字のみでOKです。（例: ['葭田', '南']）
-const TARGET_NAMES = ['葭田', '久島', '柴﨑', '澁屋']; 
+const TARGET_NAMES = []; 
 const LOGIN_URL = 'https://atnd.ak4.jp/ja/login';
 const MANAGER_URL = 'https://atnd.ak4.jp/ja/manager';
 const ROOT_JA_URL = 'https://atnd.ak4.jp/ja'; 
@@ -205,7 +205,7 @@ function checkAttendance(sessionCookie) {
         // 予定出勤時刻の5分前を通知開始時刻とする
         const fiveMinutesBefore = scheduledStartTime.getTime() - 5 * 60 * 1000;
 
-        // 実績出勤時刻が未入力かつ、通知時刻（5分前）を過ぎている場合
+        // 実績出勤打刻が未入力かつ、通知時刻（5分前）を過ぎている場合
         if (employee.stampStart === '--:--' && nowTime >= fiveMinutesBefore) {
           messages.push(`${employee.name} さん、予定出勤時刻 ${employee.scheduledStart} の出勤打刻が行われていません。至急、打刻してください。`);
         }
@@ -218,7 +218,7 @@ function checkAttendance(sessionCookie) {
         // 予定退勤時刻の15分後を通知開始時刻とする
         const fifteenMinutesAfter = scheduledEndTime.getTime() + 15 * 60 * 1000;
         
-        // 実績退勤時刻が未入力かつ、通知時刻（15分後）を過ぎている場合
+        // 実績退勤打刻が未入力かつ、通知時刻（15分後）を過ぎている場合
         if (employee.stampEnd === '--:--' && nowTime >= fifteenMinutesAfter) {
           messages.push(`${employee.name} さん、予定退勤時刻 ${employee.scheduledEnd} の退勤打刻が行われていません。至急、打刻してください。`);
         }
@@ -550,7 +550,7 @@ function parseAttendanceHTML(html) {
         name = cleanName.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
 
-        // --- 2. 実績打刻時刻の抽出 (Index 2) ---
+        // --- 2. 実績打刻打刻の抽出 (Index 2) ---
         let stampCell = cellContents[2];
         const stampTimeMatches = stampCell.match(/--:--|\d{2}:\d{2}/g) || [];
 
