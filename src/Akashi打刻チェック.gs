@@ -15,7 +15,7 @@
 // ==============================================================================
 
 // 通知対象の氏名を設定 (空の場合は全員が対象)。名字のみでOKです。（例: ['葭田', '南']）
-const TARGET_NAMES = []; 
+const TARGET_NAMES = ['葭田', '久島', '柴﨑', '澁屋']; 
 const LOGIN_URL = 'https://atnd.ak4.jp/ja/login';
 const MANAGER_URL = 'https://atnd.ak4.jp/ja/manager';
 const ROOT_JA_URL = 'https://atnd.ak4.jp/ja'; 
@@ -100,6 +100,39 @@ function formatCookieHeader(cookieMap) {
     .join('; ');
 }
 
+/**
+ * 勤務ステータス文字列から年休の種類を判定する
+ * @param {string} statusText Akashiから取得したステータス文字列 (例: "在宅勤務、午前半年休")
+ * @returns {string|null} "年休", "午前半年休", "午後半年休" のいずれか、
+ * または年休関連の文字列が含まれない場合は null
+ */
+function getLeaveType(statusText) {
+  if (!statusText) {
+    return null; // ステータス文字列が空の場合は null を返す
+  }
+
+  // 1. 午前半休を最初にチェック (より具体的なパターンから)
+  const amLeaveMatch = statusText.match(/午前半年休/);
+  if (amLeaveMatch) {
+    return "午前半年休";
+  }
+
+  // 2. 午後半休を次にチェック
+  const pmLeaveMatch = statusText.match(/午後半年休/);
+  if (pmLeaveMatch) {
+    return "午後半年休";
+  }
+
+  // 3. 通常の年休を最後にチェック (最も一般的なパターン)
+  //    "年休"という文字列自体が含まれているか
+  const annualLeaveMatch = statusText.match(/年休/);
+  if (annualLeaveMatch) {
+    return "年休";
+  }
+
+  // どの年休パターンにもマッチしなかった場合
+  return null;
+}
 
 // ==============================================================================
 // 3. メイン処理 (エントリーポイント)
@@ -548,6 +581,37 @@ function parseAttendanceHTML(html) {
             scheduledEnd = newEndTime; // 退勤予定時刻を上書き
         }
 
+        // --- 5. 勤務状況欄から年休を取得 (Index 5) ---
+        let statusCell = cellContents[5];
+        statusText = statusCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        // 「年休」の形式を検索
+        const leaveType = getLeaveType(statusText);
+        
+        if (leaveType) { // leaveTypeがnullではない場合のみ処理を実行
+          switch (leaveType) {
+            case '年休':
+              scheduledStart = '--:--';
+              scheduledEnd = '--:--';
+              Logger.log(`情報: ${name} は【${leaveType}】でしたので、出退勤予定を削除します。`);
+              break;
+
+            case '午前半年休':
+              scheduledStart = '13:00';
+              Logger.log(`情報: ${name} は【${leaveType}】でしたので、出勤予定を【13:00】に上書きします。`);
+              break;
+
+            case '午後半年休':
+              scheduledEnd = '12:00';
+              Logger.log(`情報: ${name} は【${leaveType}】でしたので、退勤予定を【12:00】に上書きします。`);
+              break;
+
+            default:
+              // 想定外のleaveTypeがあった場合のログ (通常は発生しないはず)
+              Logger.log(`警告: ${name} の不明な年休タイプ (${leaveType}) が検出されました。`);
+              break;
+          }
+        }
         if (name && name.length > 0) {
             const employeeRecord = { 
                 name, 
