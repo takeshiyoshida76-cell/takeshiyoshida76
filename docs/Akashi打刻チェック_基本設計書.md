@@ -34,6 +34,24 @@ Akashiのログインは、セッション管理とCSRFトークンを伴う一�
 3.  **セッション確立:** リダイレクトヘッダーから**最終セッションCookie**を取得し、以降のデータ取得リクエストで使用します。
 4.  **ページ遷移:** セッション安定のため、勤怠サマリページ (`/daily_summary`) の前に中間ページを `GET` でアクセスします。
 
+```mermaid
+sequenceDiagram
+    participant GAS as GASスクリプト
+    participant Akashi as Akashiサーバー
+
+    GAS->>Akashi: GET /ja/login
+    Akashi-->>GAS: HTML + CSRFトークン + 初期Cookie
+
+    GAS->>Akashi: POST /login（認証情報 + トークン + Cookie）
+    Akashi-->>GAS: リダイレクト + 最終セッションCookie
+
+    GAS->>Akashi: GET /中間ページ（セッション安定化）
+    Akashi-->>GAS: HTMLレスポンス
+
+    GAS->>Akashi: GET /daily_summary（勤怠データ取得）
+    Akashi-->>GAS: 勤怠HTMLデータ
+```
+
 ---
 
 ## 3. 勤怠データ抽出・チェックの仕様
