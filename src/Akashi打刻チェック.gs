@@ -101,9 +101,9 @@ function formatCookieHeader(cookieMap) {
 }
 
 /**
- * 勤務ステータス文字列から年休の種類を判定する
+ * 勤務ステータス文字列から休暇の種類を判定する
  * @param {string} statusText Akashiから取得したステータス文字列 (例: "在宅勤務、午前半年休")
- * @returns {string|null} "年休", "午前半年休", "午後半年休" のいずれか、
+ * @returns {string|null} "休暇", "午前休", "午後休" のいずれか、
  * または年休関連の文字列が含まれない場合は null
  */
 function getLeaveType(statusText) {
@@ -114,20 +114,20 @@ function getLeaveType(statusText) {
   // 1. 午前半休を最初にチェック (より具体的なパターンから)
   const amLeaveMatch = statusText.match(/午前半年休/);
   if (amLeaveMatch) {
-    return "午前半年休";
+    return "午前休";
   }
 
   // 2. 午後半休を次にチェック
   const pmLeaveMatch = statusText.match(/午後半年休/);
   if (pmLeaveMatch) {
-    return "午後半年休";
+    return "午後休";
   }
 
   // 3. 通常の年休を最後にチェック (最も一般的なパターン)
   //    "年休"という文字列自体が含まれているか
-  const annualLeaveMatch = statusText.match(/年休/);
+  const annualLeaveMatch = statusText.match(/年休|振替休日|代休|記念日休暇/);
   if (annualLeaveMatch) {
-    return "年休";
+    return "休暇";
   }
 
   // どの年休パターンにもマッチしなかった場合
@@ -581,7 +581,7 @@ function parseAttendanceHTML(html) {
             scheduledEnd = newEndTime; // 退勤予定時刻を上書き
         }
 
-        // --- 5. 勤務状況欄から年休を取得 (Index 5) ---
+        // --- 5. 勤務状況欄から休暇を取得 (Index 5) ---
         let statusCell = cellContents[5];
         statusText = statusCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
         
@@ -590,25 +590,25 @@ function parseAttendanceHTML(html) {
         
         if (leaveType) { // leaveTypeがnullではない場合のみ処理を実行
           switch (leaveType) {
-            case '年休':
+            case '休暇':
               scheduledStart = '--:--';
               scheduledEnd = '--:--';
               Logger.log(`情報: ${name} は【${leaveType}】でしたので、出退勤予定を削除します。`);
               break;
 
-            case '午前半年休':
+            case '午前休':
               scheduledStart = '13:00';
               Logger.log(`情報: ${name} は【${leaveType}】でしたので、出勤予定を【13:00】に上書きします。`);
               break;
 
-            case '午後半年休':
+            case '午後休':
               scheduledEnd = '12:00';
               Logger.log(`情報: ${name} は【${leaveType}】でしたので、退勤予定を【12:00】に上書きします。`);
               break;
 
             default:
               // 想定外のleaveTypeがあった場合のログ (通常は発生しないはず)
-              Logger.log(`警告: ${name} の不明な年休タイプ (${leaveType}) が検出されました。`);
+              Logger.log(`警告: ${name} の不明な休暇タイプ (${leaveType}) が検出されました。`);
               break;
           }
         }
