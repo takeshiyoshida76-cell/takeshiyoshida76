@@ -20,17 +20,19 @@ const LOGIN_URL = 'https://atnd.ak4.jp/ja/login';
 const MANAGER_URL = 'https://atnd.ak4.jp/ja/manager';
 const ROOT_JA_URL = 'https://atnd.ak4.jp/ja'; 
 const CURRENT_ATTENDANCE_URL = 'https://atnd.ak4.jp/ja/manager/current_attendance_status';
-
-// 勤怠サマリURL
 const ATTENDANCE_URL = 'https://atnd.ak4.jp/ja/manager/daily_summary'; 
-
-// User-Agent
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 // ==============================================================================
 // 2. ユーティリティ関数
 // ==============================================================================
 
+/**
+ * スクリプトプロパティから認証情報を取得
+ * @description スクリプトプロパティから会社ID、ログインID、パスワード、Webhook URLを取得します。
+ * @returns {Object} 認証情報オブジェクト（companyId, loginId, password, webhookUrl）
+ * @throws {Error} スクリプトプロパティが未設定の場合、エラーがログに記録される
+ */
 function getCredentials() {
   const scriptProperties = PropertiesService.getScriptProperties();
   return {
@@ -48,13 +50,8 @@ function getCredentials() {
 function getCurrentJSTAndDateString() {
   const now = new Date();
   const jstTimeZone = 'Asia/Tokyo';
-  
-  // JSTでの現在時刻をDateオブジェクトとして取得
   const nowJST = new Date(Utilities.formatDate(now, jstTimeZone, 'yyyy-MM-dd HH:mm:ss') + '+09:00');
-  
-  // YYYYMMDD形式の文字列を生成 (ログ用)
   const dateString = Utilities.formatDate(nowJST, jstTimeZone, 'yyyyMMdd');
-  
   return { date: nowJST, dateString: dateString };
 }
 
@@ -68,19 +65,27 @@ function parseTime(timeStr, baseDate) {
   return date;
 }
 
+/**
+ * ランダムな遅延を追加
+ * @description 指定した範囲（ミリ秒）でランダムな遅延を挿入し、サーバー負荷を軽減します。
+ * @param {number} min 最小遅延時間（ミリ秒）
+ * @param {number} max 最大遅延時間（ミリ秒）
+ */
 function addRandomDelay(min, max) {
   const delay = Math.floor(Math.random() * (max - min + 1)) + min;
   Utilities.sleep(delay);
 }
 
 /**
- * Set-CookieヘッダーからCookieマップを更新する
+ * Set-CookieヘッダーからCookieマップを更新
+ * @description HTTPレスポンスのSet-CookieヘッダーからCookieマップを更新します。
+ * @param {Object} cookieMap 現在のCookieマップ（キー:値ペア）
+ * @param {string|string[]} setCookieHeaders Set-Cookieヘッダー（単一または配列）
+ * @returns {Object} 更新されたCookieマップ
  */
 function updateCookieMap(cookieMap, setCookieHeaders) {
   if (!setCookieHeaders) return cookieMap;
-  
   const cookieArray = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
-  
   cookieArray.forEach(cookieStr => {
     const pair = cookieStr.split(';')[0].trim();
     if (pair.includes('=')) {
@@ -92,7 +97,10 @@ function updateCookieMap(cookieMap, setCookieHeaders) {
 }
 
 /**
- * CookieマップをHTTPリクエストヘッダー用の文字列に変換する
+ * CookieマップをHTTPリクエストヘッダー用の文字列に変換
+ * @description Cookieマップを「key=value; key=value」形式の文字列に変換します。
+ * @param {Object} cookieMap Cookieのキー:値ペア
+ * @returns {string} HTTPリクエスト用のCookieヘッダー文字列
  */
 function formatCookieHeader(cookieMap) {
   return Object.entries(cookieMap)
@@ -101,36 +109,15 @@ function formatCookieHeader(cookieMap) {
 }
 
 /**
- * 勤務ステータス文字列から休暇の種類を判定する
- * @param {string} statusText Akashiから取得したステータス文字列 (例: "在宅勤務、午前半年休")
- * @returns {string|null} "休暇", "午前休", "午後休" のいずれか、
- * または年休関連の文字列が含まれない場合は null
+ * 勤務ステータス文字列から休暇の種類を判定
+ * @param {string} statusText Akashiから取得したステータス文字列
+ * @returns {string|null} "休暇", "午前休", "午後休" または null
  */
 function getLeaveType(statusText) {
-  if (!statusText) {
-    return null; // ステータス文字列が空の場合は null を返す
-  }
-
-  // 1. 午前半休を最初にチェック (より具体的なパターンから)
-  const amLeaveMatch = statusText.match(/午前半年休/);
-  if (amLeaveMatch) {
-    return "午前休";
-  }
-
-  // 2. 午後半休を次にチェック
-  const pmLeaveMatch = statusText.match(/午後半年休/);
-  if (pmLeaveMatch) {
-    return "午後休";
-  }
-
-  // 3. 通常の年休を最後にチェック (最も一般的なパターン)
-  //    "年休"という文字列自体が含まれているか
-  const annualLeaveMatch = statusText.match(/年休|振替休日|代休|記念日休暇/);
-  if (annualLeaveMatch) {
-    return "休暇";
-  }
-
-  // どの年休パターンにもマッチしなかった場合
+  if (!statusText) return null;
+  if (statusText.match(/午前半年休/)) return "午前休";
+  if (statusText.match(/午後半年休/)) return "午後休";
+  if (statusText.match(/年休|振替休日|代休|記念日休暇/)) return "休暇";
   return null;
 }
 
@@ -138,18 +125,31 @@ function getLeaveType(statusText) {
 // 3. メイン処理 (エントリーポイント)
 // ==============================================================================
 
+/**
+ * 勤怠チェックのメイン処理
+ * @description Akashiにログインし、勤怠データをチェックしてGoogle Chatに通知します。ログイン失敗時はリトライを行い、失敗した場合にエラー通知を送信します。
+ */
 function main() {
   Logger.log('お知らせ: 実行開始');
-  const sessionCookie = loginToAkashi();
-  
+  const sessionCookie = loginToAkashiWithRetry();
+
   if (sessionCookie) {
     checkAttendance(sessionCookie);
   } else {
+    const jstInfo = getCurrentJSTAndDateString();
+    const dateFormatted = Utilities.formatDate(jstInfo.date, 'Asia/Tokyo', 'yyyy年MM月dd日');
+    const errorMessage = `【勤怠チェック失敗】${dateFormatted}: ログインに失敗したため、勤怠チェックができませんでした。`;
+    sendToGoogleChat(errorMessage, false);
     Logger.log('エラー: ログインに失敗したため、処理を中断します。');
   }
   Logger.log('お知らせ: 実行完了');
 }
 
+/**
+ * 勤怠データのチェックと通知
+ * @description Akashiの勤怠ページからデータを取得し、打刻漏れをチェックしてGoogle Chatに通知します。
+ * @param {string} sessionCookie AkashiのセッションCookie
+ */
 function checkAttendance(sessionCookie) {
   const jstInfo = getCurrentJSTAndDateString();
   const now = jstInfo.date;
@@ -162,7 +162,6 @@ function checkAttendance(sessionCookie) {
     return acc;
   }, {});
   
-  // ページ遷移のシーケンス
   const urls = [MANAGER_URL, CURRENT_ATTENDANCE_URL, ATTENDANCE_URL];
   let currentCookieMap = cookieMap;
   let htmlContent = '';
@@ -175,7 +174,7 @@ function checkAttendance(sessionCookie) {
     }
     htmlContent = fetchResult.html;
     currentCookieMap = fetchResult.cookieMap;
-    addRandomDelay(2000, 5000); 
+    addRandomDelay(2000, 5000);
   }
 
   if (!htmlContent) {
@@ -189,36 +188,22 @@ function checkAttendance(sessionCookie) {
   Logger.log('情報: 抽出された全従業員数: ' + employeeData.length);
 
   employeeData.forEach(employee => {
-    // 氏名から名字のみを抽出 (例: "葭田 健志" -> "葭田")
-    const lastName = employee.name.trim().split(/\s+/)[0]; 
-    
-    // TARGET_NAMESが空の場合は全員を対象にする。空でなければ名字がリストに含まれているかチェック。
+    const lastName = employee.name.trim().split(/\s+/)[0];
     if (TARGET_NAMES.length === 0 || TARGET_NAMES.includes(lastName)) {
-      
       const nowTime = now.getTime();
-
       Logger.log('チェック情報: 氏名:' + employee.name + ' 予定開始:' + employee.scheduledStart + ' 予定終了:' + employee.scheduledEnd + ' 打刻開始:' + employee.stampStart + ' 打刻終了:' + employee.stampEnd);
-      // 1. 出勤打刻漏れチェック (予定開始時刻が設定されている場合)
+
       if (employee.scheduledStart !== '--:--') {
         const scheduledStartTime = parseTime(employee.scheduledStart, now);
-        
-        // 予定出勤時刻の5分前を通知開始時刻とする
         const fiveMinutesBefore = scheduledStartTime.getTime() - 5 * 60 * 1000;
-
-        // 実績出勤打刻が未入力かつ、通知時刻（5分前）を過ぎている場合
         if (employee.stampStart === '--:--' && nowTime >= fiveMinutesBefore) {
           messages.push(`${employee.name} さん、予定出勤時刻 ${employee.scheduledStart} の出勤打刻が行われていません。至急、打刻してください。`);
         }
       }
-      
-      // 2. 退勤打刻漏れチェック (予定退勤時刻が設定されている場合)
+
       if (employee.scheduledEnd !== '--:--') {
         const scheduledEndTime = parseTime(employee.scheduledEnd, now);
-        
-        // 予定退勤時刻の15分後を通知開始時刻とする
         const fifteenMinutesAfter = scheduledEndTime.getTime() + 15 * 60 * 1000;
-        
-        // 実績退勤打刻が未入力かつ、通知時刻（15分後）を過ぎている場合
         if (employee.stampEnd === '--:--' && nowTime >= fifteenMinutesAfter) {
           messages.push(`${employee.name} さん、予定退勤時刻 ${employee.scheduledEnd} の退勤打刻が行われていません。至急、打刻してください。`);
         }
@@ -230,16 +215,35 @@ function checkAttendance(sessionCookie) {
     const dateFormatted = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy年MM月dd日');
     const header = `【打刻アラート】${dateFormatted} の打刻漏れが${messages.length}件あります！\n`;
     const messageText = header + messages.join('\n');
-    sendToGoogleChat(messageText);
+    sendToGoogleChat(messageText, true);
     Logger.log('情報: 送信したメッセージ:\n' + messageText);
   } else {
     Logger.log('情報: 送信するメッセージはありません。');
   }
 }
 
-// ==============================================================================
-// 4. 外部通信関数 (Akashi & Google Chat)
-// ==============================================================================
+/**
+ * ログイン失敗時にリトライを行うラッパー関数
+ * @returns {string|null} セッションCookie（成功時）またはnull（失敗時）
+ */
+function loginToAkashiWithRetry() {
+  const maxRetries = 3;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    Logger.log(`情報: ログイン試行 (${retryCount + 1}/${maxRetries})`);
+    const sessionCookie = loginToAkashi();
+    if (sessionCookie) {
+      return sessionCookie;
+    }
+    retryCount++;
+    Logger.log(`警告: ログイン失敗、リトライします（試行 ${retryCount}/${maxRetries}）`);
+    addRandomDelay(1000, 2000);
+  }
+
+  Logger.log(`エラー: 最大リトライ回数（${maxRetries}）を超過、ログイン失敗`);
+  return null;
+}
 
 /**
  * Akashiにログインし、成功した場合にセッションCookieを返す
@@ -253,7 +257,6 @@ function loginToAkashi() {
   }
 
   let cookieMap = {};
-
   const getOptions = {
     method: 'GET',
     muteHttpExceptions: true,
@@ -270,7 +273,6 @@ function loginToAkashi() {
     const getResponse = UrlFetchApp.fetch(LOGIN_URL, getOptions);
     const html = getResponse.getContentText('UTF-8');
     const headers = getResponse.getAllHeaders();
-
     const match = html.match(/<input[^>]*name="authenticity_token"[^>]*value="([^"]*)"/);
     if (!match || !match[1]) {
       Logger.log('エラー: CSRFトークンが見つかりませんでした。');
@@ -282,34 +284,32 @@ function loginToAkashi() {
     cookieMap = updateCookieMap(cookieMap, headers['Set-Cookie'] || headers['set-cookie']);
     Logger.log('情報: 初回セッションCookieを取得: ' + formatCookieHeader(cookieMap));
     
-    addRandomDelay(500, 1000); 
+    addRandomDelay(500, 1000);
 
     const mandatoryParams = {
       'authenticity_token': csrfToken,
       'form[company_id]': credentials.companyId,
       'form[login_id]': credentials.loginId,
       'form[password]': credentials.password,
-      'form[next]': '/ja', 
+      'form[next]': '/ja',
       'commit': 'ログイン'
     };
 
     const repeatingParams = [
-      ['form[fill_company_id_and_login_id]', '0'], 
-      ['form[fill_company_id_and_login_id]', '1'] 
+      ['form[fill_company_id_and_login_id]', '0'],
+      ['form[fill_company_id_and_login_id]', '1']
     ];
 
     const allEntries = Object.entries(mandatoryParams).concat(repeatingParams);
     const payloadString = allEntries
-      .map(([k, v]) => 
-        `${encodeURIComponent(k)}=${encodeURIComponent(v)}`
-      )
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .join('&');
 
     const postOptions = {
       method: 'POST',
       payload: payloadString,
       contentType: 'application/x-www-form-urlencoded',
-      followRedirects: false, 
+      followRedirects: false,
       muteHttpExceptions: true,
       headers: {
         'User-Agent': USER_AGENT,
@@ -337,7 +337,6 @@ function loginToAkashi() {
       Logger.log(`情報: POST成功ステータス ${statusCode} を受信。リダイレクト先: ${locationUrl || 'Locationヘッダーなし'}`);
 
       if (locationUrl && (locationUrl.includes(MANAGER_URL) || locationUrl === ROOT_JA_URL)) {
-        
         Logger.log('情報: 最終セッションCookieを確定し、リダイレクト先のGETリクエストを実行します...');
         addRandomDelay(1500, 2500);
         
@@ -354,7 +353,7 @@ function loginToAkashi() {
           followRedirects: true
         };
         
-        const finalResponse = UrlFetchApp.fetch(locationUrl, finalOptions); 
+        const finalResponse = UrlFetchApp.fetch(locationUrl, finalOptions);
         cookieMap = updateCookieMap(cookieMap, finalResponse.getAllHeaders()['Set-Cookie'] || finalResponse.getAllHeaders()['set-cookie']);
         
         const finalCookieString = formatCookieHeader(cookieMap);
@@ -371,9 +370,8 @@ function loginToAkashi() {
     const toastMatch = postHtml.match(/<div class="c-toast\s*p-toast--runtime">([\s\S]*?)<\/div>/i);
     let errorMessage = 'エラーメッセージなし';
     if (toastMatch && toastMatch[1].trim() !== '') {
-        errorMessage = toastMatch[1].trim().replace(/<[^>]*>/g, '').replace(/\n/g, ' ').trim();
+      errorMessage = toastMatch[1].trim().replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
     }
-
     Logger.log(`エラー: ログイン失敗、ステータスコード: ${statusCode}, サーバー応答HTMLにエラー情報が含まれている可能性があります: ${errorMessage}`);
     return null;
 
@@ -387,13 +385,12 @@ function loginToAkashi() {
  * 指定されたURLのHTMLを取得し、更新されたCookieマップを返す
  */
 function fetchPageHTML(initialCookieMap, url) {
-  let currentCookieMap = {...initialCookieMap}; 
+  let currentCookieMap = {...initialCookieMap};
   let retryCount = 0;
   const maxRetries = 3;
 
   while (retryCount < maxRetries) {
     addRandomDelay(2000, 4000);
-
     const options = {
       method: 'GET',
       headers: {
@@ -420,17 +417,16 @@ function fetchPageHTML(initialCookieMap, url) {
       
       if (html.includes('<title>AKASHI - ログイン</title>')) {
         Logger.log('情報: ログインページにリダイレクト。セッション再取得を試みます...');
-        const newCookieString = loginToAkashi(); 
+        const newCookieString = loginToAkashiWithRetry();
         if (!newCookieString) {
           Logger.log('エラー: 再ログイン失敗。処理を中断します。');
           return { html: '', cookieMap: currentCookieMap };
         }
-        const newCookieMap = newCookieString.split('; ').reduce((acc, pair) => {
+        currentCookieMap = newCookieString.split('; ').reduce((acc, pair) => {
           const [key, value] = pair.split('=').map(s => s.trim());
           if (key) acc[key] = value;
           return acc;
         }, {});
-        currentCookieMap = {...newCookieMap}; 
         retryCount++;
         continue;
       }
@@ -451,22 +447,31 @@ function fetchPageHTML(initialCookieMap, url) {
   return { html: '', cookieMap: currentCookieMap };
 }
 
+/**
+ * URLに応じたRefererヘッダーを取得
+ * @description ページ遷移のRefererヘッダーを決定します。
+ * @param {string} url 対象URL
+ * @returns {string} Refererヘッダーとして使用するURL
+ */
 function getReferer(url) {
   const refererMap = {
-    [MANAGER_URL]: ROOT_JA_URL, 
+    [MANAGER_URL]: ROOT_JA_URL,
     [CURRENT_ATTENDANCE_URL]: MANAGER_URL,
-    [ATTENDANCE_URL]: CURRENT_ATTENDANCE_URL 
+    [ATTENDANCE_URL]: CURRENT_ATTENDANCE_URL
   };
   
   for (const key in refererMap) {
-    if (url.startsWith(key)) {
-      return refererMap[key];
-    }
+    if (url.startsWith(key)) return refererMap[key];
   }
   return LOGIN_URL;
 }
 
-function sendToGoogleChat(message) {
+/**
+ * Google Chatにメッセージを送信
+ * @param {string} message 送信するメッセージ
+ * @param {boolean} includeMention メンション（<users/all>）を含むか
+ */
+function sendToGoogleChat(message, includeMention = true) {
   const credentials = getCredentials();
   const webhookUrl = credentials.webhookUrl;
 
@@ -475,34 +480,27 @@ function sendToGoogleChat(message) {
     return;
   }
 
-  // 1. 送信するJSONオブジェクトを定義
-  const payloadObject = {
-    "text": "<users/all>" + message, // @allタグをメッセージの先頭に結合
-    "annotations": [
-      {
-        "type": "USER_MENTION",
-        "start_index": 0,
-        // @allタグの文字数分（通常は11文字）
-        "length": 11, 
-        "user_mention": {
-          "user": {
-            "name": "users/all",
-          }
-        }
+  const payloadObject = includeMention ? {
+    "text": "<users/all>" + message,
+    "annotations": [{
+      "type": "USER_MENTION",
+      "start_index": 0,
+      "length": 11,
+      "user_mention": {
+        "user": { "name": "users/all" }
       }
-    ]
+    }]
+  } : {
+    "text": message
   };
 
   const options = {
     method: 'post',
-    // 2. payloadにオブジェクトを直接渡し、GASにJSON化させる
     contentType: 'application/json',
-    payload: JSON.stringify(payloadObject), // ここはstringify(payloadObject)を維持
+    payload: JSON.stringify(payloadObject),
     muteHttpExceptions: true
   };
 
-  // ... (try-catchブロックはそのまま)
-  
   try {
     const response = UrlFetchApp.fetch(webhookUrl, options);
     const statusCode = response.getResponseCode();
@@ -515,13 +513,11 @@ function sendToGoogleChat(message) {
   }
 }
 
-// ==============================================================================
-// 5. データ解析関数
-// ==============================================================================
-
+/**
+ * 勤怠HTMLを解析し、従業員データを抽出
+ */
 function parseAttendanceHTML(html) {
   const employees = [];
-  // <tr id="daily_summary_\d+" で始まる行を抽出
   const rowRegex = /<tr id="daily_summary_\d+"[\s\S]*?<\/tr>/g;
   const rows = html.match(rowRegex) || [];
   Logger.log('情報: 抽出された行数: ' + rows.length);
@@ -535,111 +531,79 @@ function parseAttendanceHTML(html) {
     let stampStart = '--:--';
     let stampEnd = '--:--';
     
-    // <td>...</td> の中身（コンテンツ部分）を全て抽出
     const cellContents = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
-    
-    // Akashiのテーブルは通常14列以上
-    if (cellContents.length < 14) { 
-        return; 
-    }
+    if (cellContents.length < 14) return;
 
     try {
-        // --- 1. 氏名抽出 (Index 1) ---
-        let nameCell = cellContents[1];
-        let cleanName = nameCell.replace(/<rt>[\s\S]*?<\/rt>/g, '');
-        name = cleanName.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      let nameCell = cellContents[1];
+      let cleanName = nameCell.replace(/<rt>[\s\S]*?<\/rt>/g, '');
+      name = cleanName.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
+      let stampCell = cellContents[2];
+      const stampTimeMatches = stampCell.match(/--:--|\d{2}:\d{2}/g) || [];
+      stampStart = stampTimeMatches[0] || '--:--';
+      stampEnd = stampTimeMatches[1] || '--:--';
 
-        // --- 2. 実績打刻打刻の抽出 (Index 2) ---
-        let stampCell = cellContents[2];
-        const stampTimeMatches = stampCell.match(/--:--|\d{2}:\d{2}/g) || [];
+      let workCell = cellContents[4];
+      const scheduledTimeMatches = workCell.match(/(\d{2}:\d{2})/g) || [];
+      scheduledStart = scheduledTimeMatches[0] || '--:--';
+      scheduledEnd = scheduledTimeMatches[1] || '--:--';
+      
+      let reasonCell = cellContents[11];
+      let reasonText = reasonCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const overtimeMatch = reasonText.match(/残業終了=(\d{2}:\d{2})/);
+      if (overtimeMatch && overtimeMatch[1]) {
+        const newEndTime = overtimeMatch[1];
+        Logger.log(`情報: ${name} の理由欄から残業終了時刻 ${newEndTime} を検出しました。退勤予定を上書きします。`);
+        scheduledEnd = newEndTime;
+      }
 
-        stampStart = stampTimeMatches[0] || '--:--';
-        stampEnd = stampTimeMatches[1] || '--:--';
-
-
-        // --- 3. 予定時刻の抽出 (Index 4) ---
-        let workCell = cellContents[4];
-        
-        // 予定時刻の抽出
-        const scheduledTimeMatches = workCell.match(/(\d{2}:\d{2})/g) || [];
-        scheduledStart = scheduledTimeMatches[0] || '--:--';
-        scheduledEnd = scheduledTimeMatches[1] || '--:--';
-        
-        const originalScheduledEnd = scheduledEnd; 
-        
-        // --- 4. 理由欄から残業終了時刻を取得 (Index 11) ---
-        let reasonCell = cellContents[11];
-        reasonText = reasonCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        
-        // 「残業終了=HH:MM」の形式を検索
-        const overtimeMatch = reasonText.match(/残業終了=(\d{2}:\d{2})/);
-        
-        if (overtimeMatch && overtimeMatch[1]) {
-            const newEndTime = overtimeMatch[1];
-            Logger.log(`情報: ${name} の理由欄から残業終了時刻 ${newEndTime} を検出しました。退勤予定を上書きします。`);
-            scheduledEnd = newEndTime; // 退勤予定時刻を上書き
+      let statusCell = cellContents[5];
+      let statusText = statusCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const leaveType = getLeaveType(statusText);
+      
+      if (leaveType) {
+        switch (leaveType) {
+          case '休暇':
+            scheduledStart = '--:--';
+            scheduledEnd = '--:--';
+            Logger.log(`情報: ${name} は【${leaveType}】でしたので、出退勤予定を削除します。`);
+            break;
+          case '午前休':
+            scheduledStart = '13:00';
+            Logger.log(`情報: ${name} は【${leaveType}】でしたので、出勤予定を【13:00】に上書きします。`);
+            break;
+          case '午後休':
+            scheduledEnd = '12:00';
+            Logger.log(`情報: ${name} は【${leaveType}】でしたので、退勤予定を【12:00】に上書きします。`);
+            break;
+          default:
+            Logger.log(`警告: ${name} の不明な休暇タイプ (${leaveType}) が検出されました。`);
+            break;
         }
+      }
 
-        // --- 5. 勤務状況欄から休暇を取得 (Index 5) ---
-        let statusCell = cellContents[5];
-        statusText = statusCell.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        
-        // 「年休」の形式を検索
-        const leaveType = getLeaveType(statusText);
-        
-        if (leaveType) { // leaveTypeがnullではない場合のみ処理を実行
-          switch (leaveType) {
-            case '休暇':
-              scheduledStart = '--:--';
-              scheduledEnd = '--:--';
-              Logger.log(`情報: ${name} は【${leaveType}】でしたので、出退勤予定を削除します。`);
-              break;
-
-            case '午前休':
-              scheduledStart = '13:00';
-              Logger.log(`情報: ${name} は【${leaveType}】でしたので、出勤予定を【13:00】に上書きします。`);
-              break;
-
-            case '午後休':
-              scheduledEnd = '12:00';
-              Logger.log(`情報: ${name} は【${leaveType}】でしたので、退勤予定を【12:00】に上書きします。`);
-              break;
-
-            default:
-              // 想定外のleaveTypeがあった場合のログ (通常は発生しないはず)
-              Logger.log(`警告: ${name} の不明な休暇タイプ (${leaveType}) が検出されました。`);
-              break;
-          }
-        }
-        if (name && name.length > 0) {
-            const employeeRecord = { 
-                name, 
-                stampStart, 
-                stampEnd, 
-                scheduledStart, 
-                scheduledEnd,
-            };
-            employees.push(employeeRecord);
-            
-            if (parsedForLog.length < 3) {
-                parsedForLog.push(employeeRecord);
-            }
-        }
+      if (name && name.length > 0) {
+        const employeeRecord = { 
+          name, stampStart, stampEnd, scheduledStart, scheduledEnd
+        };
+        employees.push(employeeRecord);
+        if (parsedForLog.length < 3) parsedForLog.push(employeeRecord);
+      }
     } catch (e) {
-        Logger.log(`エラー: 行 ${index} のパース中に例外が発生しました: ${e.message}`);
+      Logger.log(`エラー: 行 ${index} のパース中に例外が発生しました: ${e.message}`);
     }
   });
   
   return employees;
 }
 
-// ==============================================================================
-// 6. テスト関数
-// ==============================================================================
-
+/**
+ * ログイン機能をテスト
+ * @description Akashiへのログインをテストし、セッションCookieの取得結果をログに記録します。
+ */
 function testLogin() {
-  const sessionCookie = loginToAkashi();
+  const sessionCookie = loginToAkashiWithRetry();
   if (sessionCookie) {
     Logger.log('情報: ログイン成功。セッション Cookie: ' + sessionCookie);
   } else {
@@ -647,6 +611,10 @@ function testLogin() {
   }
 }
 
+/**
+ * メイン処理をテスト
+ * @description 勤怠チェックの全体処理をテスト実行します。
+ */
 function testMain() {
   main();
 }
