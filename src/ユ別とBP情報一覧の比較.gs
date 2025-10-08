@@ -1,18 +1,12 @@
 /**
- * ユ別に登録されている名前が、BP情報一覧に登録されているかをチェックし、
- * 見つからない名前をログとGoogle Chatに出力するスクリプトです。
- *
- * 以下の条件を満たす行をチェック対象とします。
- * ・5列目（所属）に値が入力されている行
- * ・2列目（名前）が「作業者名」や「社員数」から始まらない行
- *
- * BP情報一覧に名前がなかった場合は、
- * ユ別の案件名、名前、顧客、所属をログとGoogle Chatに出力します。
+ * ユ別に登録されている名前がBP情報一覧に登録されているかをチェックし、
+ * 未登録の名前を管理者単位および顧客・案件単位でグループ化してログとGoogle Chatに出力する。
+ * @author T.Yoshida
+ * @throws {Error} スプレッドシートやフォルダが見つからない場合、またはGoogle Chat送信時にエラーが発生した場合
  */
-
 function checkNamesInSheets() {
   // =========================================================================
-  // 設定項目：以下の情報を、ご自身のスプレッドシートに合わせて変更してください。
+  // 設定項目：スプレッドシートやファイルの情報を設定
   // =========================================================================
   // ユ別の格納フォルダID
   const folderIdA = PropertiesService.getScriptProperties().getProperty('YUBETSU_FOLDER_ID');
@@ -20,21 +14,28 @@ function checkNamesInSheets() {
   const departmentSuffixes = ['ﾃﾞｼﾞﾀﾙ推進部', '業務推進部'];
   // ユ別のシート名
   const sheetNameA = '売上・支払情報'; 
-  // ユ別の案件名が記載されている列番号
+  // ユ別の案件名が記載されている列番号（A列=1）
   const caseNameColumnA = 1; 
-  // ユ別の個人名が記載されている列番号（A列は1, B列は2...）
+  // ユ別の個人名が記載されている列番号
   const nameColumnA = 2; 
   // ユ別の顧客が記載されている列番号
   const customerColumnA = 3; 
   // ユ別の所属が記載されている列番号
   const departmentColumnA = 5;
 
+  // 管理者マスタのスプレッドシートID
+  const adminMasterId = PropertiesService.getScriptProperties().getProperty('ADMIN_MASTER_FILE_ID');
+  // 管理者マスタのシート名
+  const adminSheetName = '管理者マスタ';
+  // 管理者マスタの列番号（顧客名、案件名、管理者氏名）
+  const adminCustomerColumn = 1;
+  const adminCaseNameColumn = 2;
+  const adminNameColumn = 3;
+
   // 実行日の前月を計算し、ファイル名を動的に生成
   const today = new Date();
-  // 前月の1日を計算
   const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const year = prevMonth.getFullYear();
-  // 月を2桁表示にフォーマット
   const month = (prevMonth.getMonth() + 1).toString().padStart(2, '0');
   const fileNamePrefix = `${year}.${month}_`;
 
@@ -42,26 +43,39 @@ function checkNamesInSheets() {
   const spreadsheetIdB = PropertiesService.getScriptProperties().getProperty('BPICHIRAN_FILE_ID');
   // BP情報一覧のシート名
   const sheetNameB = 'フォームの回答 2';
-  // BP情報一覧の個人名が記載されている列番号（A列は1, B列は2...）
+  // BP情報一覧の個人名が記載されている列番号
   const nameColumnB = 6;
 
-  // Google ChatのWebhook URL
-  // Google Chatのスペースの「Webhookを作成」で取得したURLを設定
-  // チャットスペース：協力会社委員会　（委員会メンバーの内部チャット）
+  // Google ChatのWebhook URL（内部チャット用）
   const chatWebhookUrl = PropertiesService.getScriptProperties().getProperty('CHAT_INNER_WEBHOOKURL');
-  // チャットスペース：協力会社委員会　（FI本部幹部通知用チャット）
-  //   const chatWebhookUrl = PropertiesService.getScriptProperties().getProperty('CHAT_OUTER_WEBHOOKURL');
-
 
   // =========================================================================
-  // ここから下のコードは変更しないでください。
+  // メイン処理
   // =========================================================================
-
   try {
+    // 管理者マスタを読み込み、顧客名＋案件名をキーとする管理者マップを作成
+    const adminSs = SpreadsheetApp.openById(adminMasterId);
+    const adminSheet = adminSs.getSheetByName(adminSheetName);
+    if (!adminSheet) {
+      const errorMessage = `エラー：管理者マスタに「${adminSheetName}」というシートが見つかりません。`;
+      Logger.log(errorMessage);
+      sendToChat(chatWebhookUrl, errorMessage);
+      return;
+    }
+    const adminValues = adminSheet.getDataRange().getValues();
+    const adminMap = new Map();
+    for (let i = 1; i < adminValues.length; i++) { // ヘッダー行をスキップ
+      const customer = adminValues[i][adminCustomerColumn - 1]?.toString().trim();
+      const caseName = adminValues[i][adminCaseNameColumn - 1]?.toString().trim();
+      const adminName = adminValues[i][adminNameColumn - 1]?.toString().trim();
+      if (customer && caseName && adminName) {
+        adminMap.set(`${customer}|${caseName}`, adminName);
+      }
+    }
+
+    // ユ別ファイルを取得
     const folder = DriveApp.getFolderById(folderIdA);
     const filesToProcess = [];
-
-    // 指定されたファイル名でフォルダ内を検索し、見つかったファイルをリストに追加
     for (const suffix of departmentSuffixes) {
       const fileName = `${fileNamePrefix}${suffix}`;
       const fileIterator = folder.getFilesByName(fileName);
@@ -80,7 +94,7 @@ function checkNamesInSheets() {
       return;
     }
 
-    // BP情報一覧の名前をSetに格納して高速な検索を可能にする
+    // BP情報一覧の名前をSetに格納（高速検索用）
     const ssB = SpreadsheetApp.openById(spreadsheetIdB);
     const sheetB = ssB.getSheetByName(sheetNameB);
     if (!sheetB) {
@@ -90,56 +104,66 @@ function checkNamesInSheets() {
       return;
     }
     const valuesB = sheetB.getDataRange().getValues();
-
     const namesInB = new Set();
-    // ヘッダー行をスキップするために i = 1 から開始
     for (let i = 1; i < valuesB.length; i++) {
       const name = valuesB[i][nameColumnB - 1];
       if (name) {
-        // 名前からすべてのスペース（全角・半角）を削除してSetに追加
-        namesInB.add(name.toString().trim().replace(/ |　/g, ''));
+        namesInB.add(name.toString().trim().replace(/ |　/g, '')); // スペースを除去して正規化
       }
     }
     
     let totalMissingCount = 0;
-    const missingNames = [];
-    
-    // 見つかった各ファイルを処理
+    const missingNamesByAdmin = new Map(); // 管理者ごとの未登録情報（顧客＋案件単位でサブグループ）
+    const missingNamesNoAdmin = new Map(); // 管理者不明の未登録情報（顧客＋案件単位でサブグループ）
+
+    // ユ別ファイルごとに名前をチェック
     for (const file of filesToProcess) {
       Logger.log(`\n--- ${file.getName()} の名前をチェック中 ---`);
-      
-      // DriveAppで取得したファイルオブジェクトからIDを取得し、スプレッドシートを開く
       const ssA = SpreadsheetApp.openById(file.getId());
       const sheetA = ssA.getSheetByName(sheetNameA);
       if (!sheetA) {
         const errorMessage = `エラー：ファイル「${file.getName()}」に「${sheetNameA}」というシートが見つかりません。`;
         Logger.log(errorMessage);
         sendToChat(chatWebhookUrl, errorMessage);
-        continue; // 次のファイルへ
+        continue;
       }
       const valuesA = sheetA.getDataRange().getValues();
 
       let missingCount = 0;
-      // ヘッダー行をスキップするために i = 1 から開始
-      for (let i = 1; i < valuesA.length; i++) {
+      for (let i = 1; i < valuesA.length; i++) { // ヘッダー行をスキップ
         const name = valuesA[i][nameColumnA - 1];
         const department = valuesA[i][departmentColumnA - 1];
         const caseName = valuesA[i][caseNameColumnA - 1];
         const customer = valuesA[i][customerColumnA - 1];
 
-        // 5列目（所属）に値があり、名前も存在し、「作業者名」「社員数」から始まらない場合にチェック
+        // 所属と名前が入力されており、対象外の名前でない場合にチェック
         if (department && name) {
           const nameString = name.toString().trim();
           if (nameString.startsWith('作業者名') || nameString.startsWith('社員数')) {
-            continue; // 対象外の行はスキップ
+            continue;
           }
           
-          // 比較する名前からすべてのスペース（全角・半角）を削除
           const normalizedName = nameString.replace(/ |　/g, '');
           if (!namesInB.has(normalizedName)) {
-            const logMessage = `  見つかりませんでした: 案件名「${caseName}」/ 名前「${name}」/ 顧客「${customer}」/ 所属「${department}」`;
+            const logMessage = `  見つかりませんでした: 案件名「${caseName}」/ 名前「${name}」/ 顧客「${customer}」/ 所属「${department}」`;
             Logger.log(logMessage);
-            missingNames.push({ caseName, name, customer, department });
+            
+            // 管理者を特定
+            const adminKey = `${customer?.toString().trim()}|${caseName?.toString().trim()}`;
+            const adminName = adminMap.get(adminKey) || '管理者不明';
+            
+            // 顧客＋案件をキーとするサブグループを作成
+            const subKey = `${customer?.toString().trim()}|${caseName?.toString().trim()}`;
+            const targetMap = adminName === '管理者不明' ? missingNamesNoAdmin : missingNamesByAdmin;
+            
+            if (!targetMap.has(adminName)) {
+              targetMap.set(adminName, new Map());
+            }
+            const adminSubMap = targetMap.get(adminName);
+            if (!adminSubMap.has(subKey)) {
+              adminSubMap.set(subKey, { customer, caseName, items: [] });
+            }
+            adminSubMap.get(subKey).items.push({ name, department });
             missingCount++;
           }
         }
@@ -148,14 +172,37 @@ function checkNamesInSheets() {
       Logger.log(`完了：${file.getName()} から合計${missingCount}件の名前が、BP情報一覧に見つかりませんでした。`);
     }
 
-    const chatMessageHeader = `${year}年${month}月のユ別に記載されている要員が、すべてBP情報一覧に登録済であることのチェックを行います。`;
+    // 通知メッセージを構築
+    const chatMessageHeader = `@all ${year}年${month}月のユ別に記載されている要員が、すべてBP情報一覧に登録済であることのチェックを行いました。以下の未登録者が見つかりました。管理者の方は対応をお願いします。`;
     let chatMessageBody = '';
 
     if (totalMissingCount > 0) {
       chatMessageBody = `チェック結果、未登録は${totalMissingCount}名でした。\n\n`;
-      missingNames.forEach(item => {
-        chatMessageBody += `未登録: 案件名「${item.caseName}」/ 名前「${item.name}」/ 顧客「${item.customer}」/ 所属「${item.department}」\n`;
-      });
+
+      // 管理者ごとの未登録情報を出力
+      for (const [adminName, adminSubMap] of missingNamesByAdmin) {
+        chatMessageBody += `【${adminName} 様 担当】\n`;
+        for (const [subKey, { customer, caseName, items }] of adminSubMap) {
+          chatMessageBody += `顧客: ${customer} / 案件名: ${caseName}\n`;
+          items.forEach(item => {
+            chatMessageBody += `  - 名前: ${item.name} / 所属: ${item.department}\n`;
+          });
+          chatMessageBody += `\n`; // 顧客＋案件ごとの空行
+        }
+        chatMessageBody += `\n`; // 管理者ごとの空行
+      }
+
+      // 管理者不明の未登録情報を出力
+      if (missingNamesNoAdmin.size > 0) {
+        chatMessageBody += `【管理者不明】\n`;
+        for (const [subKey, { customer, caseName, items }] of missingNamesNoAdmin) {
+          chatMessageBody += `顧客: ${customer} / 案件名: ${caseName}\n`;
+          items.forEach(item => {
+            chatMessageBody += `  - 名前: ${item.name} / 所属: ${item.department}\n`;
+          });
+          chatMessageBody += `\n`;
+        }
+      }
     } else {
       chatMessageBody = 'チェック結果、すべての名前がBP情報一覧に登録されていました。';
     }
@@ -172,18 +219,22 @@ function checkNamesInSheets() {
 }
 
 /**
- * Google ChatのWebhook URLにメッセージを送信するヘルパー関数
+ * Google ChatのWebhook URLにメッセージを送信するヘルパー関数。
  * @param {string} url - Google ChatのWebhook URL
  * @param {string} message - 送信するメッセージ
+ * @author T.Yoshida
+ * @throws {Error} Webhook送信時にエラーが発生した場合
  */
 function sendToChat(url, message) {
+  // JSONペイロードを作成
+  const payload = JSON.stringify({ 'text': message });
+  const options = {
+    'method': 'post',
+    'contentType': 'application/json',
+    'payload': payload,
+  };
+
   try {
-    const payload = JSON.stringify({ 'text': message });
-    const options = {
-      'method': 'post',
-      'contentType': 'application/json',
-      'payload': payload,
-    };
     UrlFetchApp.fetch(url, options);
     Logger.log('Google Chatにメッセージを送信しました。');
   } catch (e) {
@@ -192,32 +243,32 @@ function sendToChat(url, message) {
 }
 
 /**
- * Google Chatに固定メッセージを投稿する関数。
- * Apps Scriptのトリガーで実行するように設定する。
+ * Google Chatに固定メッセージを投稿する関数。トリガーで定期実行される。
+ * ユ別スプレッドシートの提出を促すメッセージを送信。
  * @author T.Yoshida
+ * @throws {Error} Webhook送信時にエラーが発生した場合
  */
 function postMessageToChat() {
-  // チャットスペース：協力会社委員会　（委員会メンバーの内部チャット）
+  // Google ChatのWebhook URL（内部チャット用）
   const WEBHOOK_URL = PropertiesService.getScriptProperties().getProperty('CHAT_INNER_WEBHOOKURL');
 
   // 送信する固定メッセージ
-  message = "ユ別をメールで受領していたら、10日までに、以下のフォルダにスプレッドシート形式で格納してください。 \n"
-  message += "https://drive.google.com/drive/folders/" & PropertiesService.getScriptProperties().getProperty('YUBETSU_FOLDER_ID');
+  let message = "ユ別をメールで受領していたら、10日までに、以下のフォルダにスプレッドシート形式で格納してください。\n";
+  message += `https://drive.google.com/drive/folders/${PropertiesService.getScriptProperties().getProperty('YUBETSU_FOLDER_ID')}`;
 
   const MESSAGES = {
     "text": message
   };
-  // ===============================
 
   // メッセージをJSON文字列に変換
   const payload = JSON.stringify(MESSAGES);
 
-  // ウェブフックにPOSTリクエストを送信
+  // HTTPリクエストのオプションを設定
   const options = {
     "method": "post",
     "contentType": "application/json",
     "payload": payload,
-    "muteHttpExceptions": true // エラー時に例外を発生させず、レスポンスを返却
+    "muteHttpExceptions": true // エラー時に例外を抑制
   };
 
   try {
@@ -228,5 +279,3 @@ function postMessageToChat() {
     Logger.log("メッセージの投稿中にエラーが発生しました：" + e.message);
   }
 }
-
-
