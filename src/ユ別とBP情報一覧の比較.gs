@@ -1,6 +1,7 @@
 /**
- * ユ別に登録されている名前がBP情報一覧に登録されているかをチェックし、
+ * ユ別に登録されている名前が、BP情報一覧に登録されているかをチェックし、
  * 未登録の名前を管理者単位および顧客・案件単位でグループ化してログとGoogle Chatに出力する。
+ * 管理者マスタで顧客名のみのレコードにも対応し、案件名が未指定の場合にフォールバックとして使用。
  * @author T.Yoshida
  * @throws {Error} スプレッドシートやフォルダが見つからない場合、またはGoogle Chat送信時にエラーが発生した場合
  */
@@ -53,7 +54,7 @@ function checkNamesInSheets() {
   // メイン処理
   // =========================================================================
   try {
-    // 管理者マスタを読み込み、顧客名＋案件名をキーとする管理者マップを作成
+    // 管理者マスタを読み込み、顧客名＋案件名および顧客名のみをキーとする管理者マップを作成
     const adminSs = SpreadsheetApp.openById(adminMasterId);
     const adminSheet = adminSs.getSheetByName(adminSheetName);
     if (!adminSheet) {
@@ -66,10 +67,12 @@ function checkNamesInSheets() {
     const adminMap = new Map();
     for (let i = 1; i < adminValues.length; i++) { // ヘッダー行をスキップ
       const customer = adminValues[i][adminCustomerColumn - 1]?.toString().trim();
-      const caseName = adminValues[i][adminCaseNameColumn - 1]?.toString().trim();
+      const caseName = adminValues[i][adminCaseNameColumn - 1]?.toString().trim() || '';
       const adminName = adminValues[i][adminNameColumn - 1]?.toString().trim();
-      if (customer && caseName && adminName) {
-        adminMap.set(`${customer}|${caseName}`, adminName);
+      if (customer && adminName) {
+        // 顧客名＋案件名（案件名が空の場合は顧客名のみ）のキーで管理者を登録
+        const key = caseName ? `${customer}|${caseName}` : `${customer}|`;
+        adminMap.set(key, adminName);
       }
     }
 
@@ -148,9 +151,12 @@ function checkNamesInSheets() {
             const logMessage = `  見つかりませんでした: 案件名「${caseName}」/ 名前「${name}」/ 顧客「${customer}」/ 所属「${department}」`;
             Logger.log(logMessage);
             
-            // 管理者を特定
+            // 管理者を特定（顧客名＋案件名を優先、なければ顧客名のみで検索）
             const adminKey = `${customer?.toString().trim()}|${caseName?.toString().trim()}`;
-            const adminName = adminMap.get(adminKey) || '管理者不明';
+            let adminName = adminMap.get(adminKey);
+            if (!adminName) {
+              adminName = adminMap.get(`${customer?.toString().trim()}|`) || '管理者不明';
+            }
             
             // 顧客＋案件をキーとするサブグループを作成
             const subKey = `${customer?.toString().trim()}|${caseName?.toString().trim()}`;
