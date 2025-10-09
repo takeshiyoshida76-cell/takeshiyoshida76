@@ -27,7 +27,7 @@ function checkNamesInSheets() {
   // 管理者マスタのスプレッドシートID
   const adminMasterId = PropertiesService.getScriptProperties().getProperty('ADMIN_MASTER_FILE_ID');
   // 管理者マスタのシート名
-  const adminSheetName = '管理者マスタ';
+  const adminSheetName = 'シート1';
   // 管理者マスタの列番号（顧客名、案件名、管理者氏名）
   const adminCustomerColumn = 1;
   const adminCaseNameColumn = 2;
@@ -43,7 +43,7 @@ function checkNamesInSheets() {
   // BP情報一覧のファイルID
   const spreadsheetIdB = PropertiesService.getScriptProperties().getProperty('BPICHIRAN_FILE_ID');
   // BP情報一覧のシート名
-  const sheetNameB = 'フォームの回答 2';
+  const sheetNameB = 'フォームの回答 1';
   // BP情報一覧の個人名が記載されている列番号
   const nameColumnB = 6;
 
@@ -73,6 +73,9 @@ function checkNamesInSheets() {
         // 顧客名＋案件名（案件名が空の場合は顧客名のみ）のキーで管理者を登録
         const key = caseName ? `${customer}|${caseName}` : `${customer}|`;
         adminMap.set(key, adminName);
+        Logger.log(`管理者マスタ登録: キー=${key}, 管理者=${adminName}`);
+      } else {
+        Logger.log(`警告：管理者マスタの行${i + 1}に不正なデータ（顧客名=${customer}, 管理者=${adminName}）をスキップ`);
       }
     }
 
@@ -136,11 +139,11 @@ function checkNamesInSheets() {
       for (let i = 1; i < valuesA.length; i++) { // ヘッダー行をスキップ
         const name = valuesA[i][nameColumnA - 1];
         const department = valuesA[i][departmentColumnA - 1];
-        const caseName = valuesA[i][caseNameColumnA - 1];
-        const customer = valuesA[i][customerColumnA - 1];
+        const caseName = valuesA[i][caseNameColumnA - 1] || ''; // 空値を明示的に処理
+        const customer = valuesA[i][customerColumnA - 1] || ''; // 空値を明示的に処理
 
         // 所属と名前が入力されており、対象外の名前でない場合にチェック
-        if (department && name) {
+        if (department && name && customer) { // 顧客名が必須
           const nameString = name.toString().trim();
           if (nameString.startsWith('作業者名') || nameString.startsWith('社員数')) {
             continue;
@@ -152,14 +155,14 @@ function checkNamesInSheets() {
             Logger.log(logMessage);
             
             // 管理者を特定（顧客名＋案件名を優先、なければ顧客名のみで検索）
-            const adminKey = `${customer?.toString().trim()}|${caseName?.toString().trim()}`;
+            const adminKey = `${customer}|${caseName}`;
             let adminName = adminMap.get(adminKey);
             if (!adminName) {
-              adminName = adminMap.get(`${customer?.toString().trim()}|`) || '管理者不明';
+              adminName = adminMap.get(`${customer}|`) || '管理者不明';
             }
             
             // 顧客＋案件をキーとするサブグループを作成
-            const subKey = `${customer?.toString().trim()}|${caseName?.toString().trim()}`;
+            const subKey = `${customer}|${caseName}`;
             const targetMap = adminName === '管理者不明' ? missingNamesNoAdmin : missingNamesByAdmin;
             
             if (!targetMap.has(adminName)) {
@@ -172,6 +175,8 @@ function checkNamesInSheets() {
             adminSubMap.get(subKey).items.push({ name, department });
             missingCount++;
           }
+        } else {
+          Logger.log(`警告：ユ別ファイル「${file.getName()}」の行${i + 1}に不正なデータ（名前=${name}, 所属=${department}, 顧客=${customer}）をスキップ`);
         }
       }
       totalMissingCount += missingCount;
@@ -188,7 +193,13 @@ function checkNamesInSheets() {
       // 管理者ごとの未登録情報を出力
       for (const [adminName, adminSubMap] of missingNamesByAdmin) {
         chatMessageBody += `【${adminName} 様 担当】\n`;
-        for (const [subKey, { customer, caseName, items }] of adminSubMap) {
+        Logger.log(`管理者=${adminName} のデータを処理中`);
+        for (const [subKey, data] of adminSubMap) {
+          const { customer, caseName, items } = data;
+          if (!items || !Array.isArray(items)) {
+            Logger.log(`エラー：キー=${subKey} のデータにitemsが不正（items=${items}）`);
+            continue; // itemsが不正な場合はスキップ
+          }
           chatMessageBody += `顧客: ${customer} / 案件名: ${caseName}\n`;
           items.forEach(item => {
             chatMessageBody += `  - 名前: ${item.name} / 所属: ${item.department}\n`;
@@ -201,7 +212,13 @@ function checkNamesInSheets() {
       // 管理者不明の未登録情報を出力
       if (missingNamesNoAdmin.size > 0) {
         chatMessageBody += `【管理者不明】\n`;
-        for (const [subKey, { customer, caseName, items }] of missingNamesNoAdmin) {
+        Logger.log(`管理者不明のデータを処理中`);
+        for (const [subKey, data] of missingNamesNoAdmin) {
+          const { customer, caseName, items } = data;
+          if (!items || !Array.isArray(items)) {
+            Logger.log(`エラー：キー=${subKey} のデータにitemsが不正（items=${items}）`);
+            continue; // itemsが不正な場合はスキップ
+          }
           chatMessageBody += `顧客: ${customer} / 案件名: ${caseName}\n`;
           items.forEach(item => {
             chatMessageBody += `  - 名前: ${item.name} / 所属: ${item.department}\n`;
