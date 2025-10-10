@@ -8,6 +8,7 @@
  * 3. 退勤通知: 予定終了時刻の15分後以降、未打刻なら通知。
  * 4. 理由欄 に '残業終了=HH:MM' の形式で残業終了時刻が記載されていた場合、
  * その HH:MM を新しい退勤予定時刻として採用し、チェックに使用する。
+ * 5. 特定の従業員を特定の日付でアラート対象外にする設定をスプレッドシートで管理。
  */
 
 // ==============================================================================
@@ -22,6 +23,8 @@ const ROOT_JA_URL = 'https://atnd.ak4.jp/ja';
 const CURRENT_ATTENDANCE_URL = 'https://atnd.ak4.jp/ja/manager/current_attendance_status';
 const ATTENDANCE_URL = 'https://atnd.ak4.jp/ja/manager/daily_summary'; 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+const EXCLUSION_SHEET_ID = PropertiesService.getScriptProperties().getProperty('EXCLUSION_SHEET_ID'); // 除外設定スプレッドシートのID
+const EXCLUSION_SHEET_NAME = '除外設定'; // 除外設定シートの名前
 
 // ==============================================================================
 // 2. ユーティリティ関数
@@ -29,8 +32,8 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
 /**
  * スクリプトプロパティから認証情報を取得
- * @description スクリプトプロパティから会社ID、ログインID、パスワード、Webhook URLを取得します。
- * @returns {Object} 認証情報オブジェクト（companyId, loginId, password, webhookUrl）
+ * @description スクリプトプロパティから会社ID、ログインID、パスワード、Webhook URL、除外設定シートIDを取得します。
+ * @returns {Object} 認証情報オブジェクト（companyId, loginId, password, webhookUrl, exclusionSheetId）
  * @throws {Error} スクリプトプロパティが未設定の場合、エラーがログに記録される
  */
 function getCredentials() {
@@ -39,7 +42,8 @@ function getCredentials() {
     companyId: scriptProperties.getProperty('COMPANY_ID'),
     loginId: scriptProperties.getProperty('LOGIN_ID'),
     password: scriptProperties.getProperty('PASSWORD'),
-    webhookUrl: scriptProperties.getProperty('WEBHOOK_URL')
+    webhookUrl: scriptProperties.getProperty('WEBHOOK_URL'),
+    exclusionSheetId: scriptProperties.getProperty('EXCLUSION_SHEET_ID')
   };
 }
 
@@ -121,6 +125,48 @@ function getLeaveType(statusText) {
   return null;
 }
 
+/**
+ * 除外設定スプレッドシートから対象者を取得
+ * @description 指定された日付の除外対象者リストをスプレッドシートから取得します。
+ * @param {string} dateString YYYYMMDD形式の日付
+ * @returns {string[]} 除外対象者の名字リスト
+ */
+function getExcludedNames(dateString) {
+  const credentials = getCredentials();
+  const sheetId = credentials.exclusionSheetId;
+  if (!sheetId) {
+    Logger.log('エラー: EXCLUSION_SHEET_IDが設定されていません。除外設定をスキップします。');
+    return [];
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sheet = ss.getSheetByName(EXCLUSION_SHEET_NAME);
+    if (!sheet) {
+      Logger.log(`エラー: シート「${EXCLUSION_SHEET_NAME}」が見つかりません。除外設定をスキップします。`);
+      return [];
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const excludedNames = [];
+
+    // ヘッダー行をスキップし、指定された日付の対象者を抽出
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = data[i][0]?.toString().trim();
+      const name = data[i][1]?.toString().trim();
+      if (rowDate === dateString && name) {
+        excludedNames.push(name);
+      }
+    }
+
+    Logger.log(`情報: ${dateString} の除外対象者: ${excludedNames.length > 0 ? excludedNames.join(', ') : 'なし'}`);
+    return excludedNames;
+  } catch (e) {
+    Logger.log(`エラー: 除外設定シートの読み込みに失敗: ${e.message}`);
+    return [];
+  }
+}
+
 // ==============================================================================
 // 3. メイン処理 (エントリーポイント)
 // ==============================================================================
@@ -153,6 +199,7 @@ function main() {
 function checkAttendance(sessionCookie) {
   const jstInfo = getCurrentJSTAndDateString();
   const now = jstInfo.date;
+  const todayString = jstInfo.dateString; // YYYYMMDD形式の今日の日付
   
   Logger.log(`情報: 対象とする勤怠サマリURL (当日): ${ATTENDANCE_URL}`);
   
@@ -184,6 +231,7 @@ function checkAttendance(sessionCookie) {
   
   const employeeData = parseAttendanceHTML(htmlContent);
   const messages = [];
+  const excludedNames = getExcludedNames(todayString); // 除外対象者リストを取得
 
   Logger.log('情報: 抽出された全従業員数: ' + employeeData.length);
 
@@ -196,7 +244,8 @@ function checkAttendance(sessionCookie) {
       if (employee.scheduledStart !== '--:--') {
         const scheduledStartTime = parseTime(employee.scheduledStart, now);
         const fiveMinutesBefore = scheduledStartTime.getTime() - 5 * 60 * 1000;
-        if (employee.stampStart === '--:--' && nowTime >= fiveMinutesBefore) {
+        // スプレッドシートで指定された日付と名字が一致しない場合にアラートを送信
+        if (employee.stampStart === '--:--' && nowTime >= fiveMinutesBefore && !excludedNames.includes(lastName)) {
           messages.push(`${employee.name} さん、予定出勤時刻 ${employee.scheduledStart} の出勤打刻が行われていません。至急、打刻してください。`);
         }
       }
