@@ -9,6 +9,7 @@
  * 4. 理由欄 に '残業終了=HH:MM' の形式で残業終了時刻が記載されていた場合、
  * その HH:MM を新しい退勤予定時刻として採用し、チェックに使用する。
  * 5. 特定の従業員を特定の日付でアラート対象外にする設定をスプレッドシートで管理。
+ *    - 除外設定された従業員は、出勤アラートと退勤アラートの両方が抑制される。
  */
 
 // ==============================================================================
@@ -241,20 +242,22 @@ function checkAttendance(sessionCookie) {
       const nowTime = now.getTime();
       Logger.log('チェック情報: 氏名:' + employee.name + ' 予定開始:' + employee.scheduledStart + ' 予定終了:' + employee.scheduledEnd + ' 打刻開始:' + employee.stampStart + ' 打刻終了:' + employee.stampEnd);
 
-      if (employee.scheduledStart !== '--:--') {
-        const scheduledStartTime = parseTime(employee.scheduledStart, now);
-        const fiveMinutesBefore = scheduledStartTime.getTime() - 5 * 60 * 1000;
-        // スプレッドシートで指定された日付と名字が一致しない場合にアラートを送信
-        if (employee.stampStart === '--:--' && nowTime >= fiveMinutesBefore && !excludedNames.includes(lastName)) {
-          messages.push(`${employee.name} さん、予定出勤時刻 ${employee.scheduledStart} の出勤打刻が行われていません。至急、打刻してください。`);
+      // スプレッドシートで指定された日付と名字が一致しない場合にアラートを送信
+      if (!excludedNames.includes(lastName)) {
+        if (employee.scheduledStart !== '--:--') {
+          const scheduledStartTime = parseTime(employee.scheduledStart, now);
+          const fiveMinutesBefore = scheduledStartTime.getTime() - 5 * 60 * 1000;
+          if (employee.stampStart === '--:--' && nowTime >= fiveMinutesBefore) {
+            messages.push(`${employee.name} さん、予定出勤時刻 ${employee.scheduledStart} の出勤打刻が行われていません。至急、打刻してください。`);
+          }
         }
-      }
 
-      if (employee.scheduledEnd !== '--:--') {
-        const scheduledEndTime = parseTime(employee.scheduledEnd, now);
-        const fifteenMinutesAfter = scheduledEndTime.getTime() + 15 * 60 * 1000;
-        if (employee.stampEnd === '--:--' && nowTime >= fifteenMinutesAfter) {
-          messages.push(`${employee.name} さん、予定退勤時刻 ${employee.scheduledEnd} の退勤打刻が行われていません。至急、打刻してください。`);
+        if (employee.scheduledEnd !== '--:--') {
+          const scheduledEndTime = parseTime(employee.scheduledEnd, now);
+          const fifteenMinutesAfter = scheduledEndTime.getTime() + 15 * 60 * 1000;
+          if (employee.stampEnd === '--:--' && nowTime >= fifteenMinutesAfter) {
+            messages.push(`${employee.name} さん、予定退勤時刻 ${employee.scheduledEnd} の退勤打刻が行われていません。至急、打刻してください。`);
+          }
         }
       }
     }
