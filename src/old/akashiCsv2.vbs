@@ -1,36 +1,36 @@
 Option Explicit
 
-' AKASHI‹Î–±•\‚ğ‚Ü‚Æ‚ß‚Äƒuƒ‰ƒEƒU‚ÅŠJ‚«A“à—e‚ğCSV‚É•Û‘¶‚·‚éˆ—
-' Às‘O‚ÉAŠÇ—Ò‚Ìƒ†[ƒU‚ÅAæ‚Éƒuƒ‰ƒEƒU‚©‚çƒƒOƒCƒ“‚µ‚Ä‚¨‚­‚±‚Æ
+' AKASHIå‹¤å‹™è¡¨ã‚’ã¾ã¨ã‚ã¦ãƒ–ãƒ©ã‚¦ã‚¶ã§é–‹ãã€å†…å®¹ã‚’CSVã«ä¿å­˜ã™ã‚‹å‡¦ç†
+' å®Ÿè¡Œå‰ã«ã€ç®¡ç†è€…ã®ãƒ¦ãƒ¼ã‚¶ã§ã€å…ˆã«ãƒ–ãƒ©ã‚¦ã‚¶ã‹ã‚‰ãƒ­ã‚°ã‚¤ãƒ³ã—ã¦ãŠãã“ã¨
 
-' --- ’è” ---
-Const MURL = "https://atnd.ak4.jp/ja/manager/attendance/" ' AKASHI‚ÌURL
-Const YYYYMM = "202509" ' ‹Î–±•\‚ğæ“¾‚µ‚½‚¢”NŒ
-Const OUT_PATH = "c:\temp" ' o—ÍƒtƒHƒ‹ƒ_
+' --- å®šæ•° ---
+Const MURL = "https://atnd.ak4.jp/ja/manager/attendance/" ' AKASHIã®URL
+Const YYYYMM = "202509" ' å‹¤å‹™è¡¨ã‚’å–å¾—ã—ãŸã„å¹´æœˆ
+Const OUT_PATH = "c:\temp" ' å‡ºåŠ›ãƒ•ã‚©ãƒ«ãƒ€
 Const TEMP_FILE_NAME = "temp_akashi_temp.txt"
-Const SAKURA_PATH = "C:\Program Files\sakura\sakura.exe" ' š ƒTƒNƒ‰ƒGƒfƒBƒ^‚ÌƒpƒX‚ğŠÂ‹«‚É‡‚í‚¹‚Ä•ÏX‚µ‚Ä‚­‚¾‚³‚¢ š
+Const SAKURA_PATH = "C:\Program Files\sakura\sakura.exe" ' â˜… ã‚µã‚¯ãƒ©ã‚¨ãƒ‡ã‚£ã‚¿ã®ãƒ‘ã‚¹ã‚’ç’°å¢ƒã«åˆã‚ã›ã¦å¤‰æ›´ã—ã¦ãã ã•ã„ â˜…
 
-' --- ‘ÎÛÒƒŠƒXƒg ---
+' --- å¯¾è±¡è€…ãƒªã‚¹ãƒˆ ---
 Dim g_persons
 g_persons = Array("336546", "336415", "336530", "336540")
-' äÑ“cA‹v“‡AÄú±AàF‰®
+' è‘­ç”°ã€ä¹…å³¶ã€æŸ´ï¨‘ã€æ¾å±‹
 
-' --- ƒIƒuƒWƒFƒNƒg‚Ìì¬ ---
+' --- ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ä½œæˆ ---
 Dim g_fso: Set g_fso = CreateObject("Scripting.FileSystemObject")
 Dim g_objShell: Set g_objShell = CreateObject("WScript.Shell")
 Dim g_regex: Set g_regex = CreateObject("VBScript.RegExp")
-g_regex.Pattern = "^\d{2}/\d{2}\([^\)]*\)" ' “ú•t‚ÌƒtƒH[ƒ}ƒbƒg
+g_regex.Pattern = "^\d{2}/\d{2}\([^\)]*\)" ' æ—¥ä»˜ã®ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ
 
-' --- ƒƒCƒ“ˆ— ---
+' --- ãƒ¡ã‚¤ãƒ³å‡¦ç† ---
 Main()
 Sub Main()
     InitializeEnvironment
     ProcessPersons
-    WScript.Echo "‚·‚×‚Ä‚Ìˆ—‚ªŠ®—¹‚µ‚Ü‚µ‚½B"
+    WScript.Echo "ã™ã¹ã¦ã®å‡¦ç†ãŒå®Œäº†ã—ã¾ã—ãŸã€‚"
     CleanupEnvironment
 End Sub
 
-' --- ŠÂ‹«İ’è ---
+' --- ç’°å¢ƒè¨­å®š ---
 Sub InitializeEnvironment()
     If Not g_fso.FolderExists(OUT_PATH) Then
         g_fso.CreateFolder OUT_PATH
@@ -42,13 +42,13 @@ Sub InitializeEnvironment()
     End If
 End Sub
 
-' --- Še’S“–Ò‚Ìˆ— ---
+' --- å„æ‹…å½“è€…ã®å‡¦ç† ---
 Sub ProcessPersons()
     Dim person, url, outFile, tempFilePath
 
     For Each person In g_persons
         url = MURL & person & "/" & YYYYMM
-        outFile = OUT_PATH & "\" & "‹Î–±•\_" & person & "-" & YYYYMM & ".csv"
+        outFile = OUT_PATH & "\" & "å‹¤å‹™è¡¨_" & person & "-" & YYYYMM & ".csv"
         tempFilePath = OUT_PATH & "\" & TEMP_FILE_NAME
 
         PerformAkashiExport person, url, tempFilePath
@@ -56,55 +56,55 @@ Sub ProcessPersons()
     Next
 End Sub
 
-' --- AKASHI ‚©‚çƒGƒNƒXƒ|[ƒg ---
+' --- AKASHI ã‹ã‚‰ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆ ---
 Sub PerformAkashiExport(person, url, tempFilePath)
-    ' ƒuƒ‰ƒEƒU‚ÅURL‚ğŠJ‚­
+    ' ãƒ–ãƒ©ã‚¦ã‚¶ã§URLã‚’é–‹ã
     g_objShell.Run url
-    ' ƒy[ƒW‚Ìƒ[ƒh‚ğ‘Ò‹@i’·‚ß‚Éİ’èj
+    ' ãƒšãƒ¼ã‚¸ã®ãƒ­ãƒ¼ãƒ‰ã‚’å¾…æ©Ÿï¼ˆé•·ã‚ã«è¨­å®šï¼‰
     WScript.Sleep 6000
     
-    ' ‘S‘I‘ğ‚ÆƒRƒs[
+    ' å…¨é¸æŠã¨ã‚³ãƒ”ãƒ¼
     g_objShell.SendKeys "^a"
-    WScript.Sleep 1500 ' ‘S‘I‘ğ‚³‚ê‚é‚Ì‚ğ‘Ò‹@
+    WScript.Sleep 1500 ' å…¨é¸æŠã•ã‚Œã‚‹ã®ã‚’å¾…æ©Ÿ
     g_objShell.SendKeys "^c"
-    ' ƒNƒŠƒbƒvƒ{[ƒh‚Ö‚ÌƒRƒs[Š®—¹‚ğ‘Ò‹@i’·‚ß‚Éİ’èj
+    ' ã‚¯ãƒªãƒƒãƒ—ãƒœãƒ¼ãƒ‰ã¸ã®ã‚³ãƒ”ãƒ¼å®Œäº†ã‚’å¾…æ©Ÿï¼ˆé•·ã‚ã«è¨­å®šï¼‰
     WScript.Sleep 3500
 
-    ' ƒTƒNƒ‰ƒGƒfƒBƒ^‚ğ‹N“®
+    ' ã‚µã‚¯ãƒ©ã‚¨ãƒ‡ã‚£ã‚¿ã‚’èµ·å‹•
     g_objShell.Run """" & SAKURA_PATH & """ """ & tempFilePath & """", 0, False
     WScript.Sleep 3000
     
-    ' ƒTƒNƒ‰ƒGƒfƒBƒ^ƒEƒBƒ“ƒhƒE‚ğŠmÀ‚ÉƒAƒNƒeƒBƒu‰»
+    ' ã‚µã‚¯ãƒ©ã‚¨ãƒ‡ã‚£ã‚¿ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’ç¢ºå®Ÿã«ã‚¢ã‚¯ãƒ†ã‚£ãƒ–åŒ–
     g_objShell.AppActivate "sakura"
-    WScript.Sleep 1500 ' ƒtƒH[ƒJƒX‚ªˆÚ‚é‚Ì‚ğ‘Ò‹@
+    WScript.Sleep 1500 ' ãƒ•ã‚©ãƒ¼ã‚«ã‚¹ãŒç§»ã‚‹ã®ã‚’å¾…æ©Ÿ
     
-    ' Šù‘¶‚Ì“à—e‚ğ‘S‘I‘ğ‚µ‚Äíœ
+    ' æ—¢å­˜ã®å†…å®¹ã‚’å…¨é¸æŠã—ã¦å‰Šé™¤
     g_objShell.SendKeys "^a"
     WScript.Sleep 500
     g_objShell.SendKeys "{DEL}"
     WScript.Sleep 500
     
-    ' ƒNƒŠƒbƒvƒ{[ƒh‚Ì“à—e‚ğ“\‚è•t‚¯
+    ' ã‚¯ãƒªãƒƒãƒ—ãƒœãƒ¼ãƒ‰ã®å†…å®¹ã‚’è²¼ã‚Šä»˜ã‘
     g_objShell.SendKeys "^v"
     WScript.Sleep 2500
     
-    ' •Û‘¶ˆ—
-    ' Ctrl+S‚Å•Û‘¶
+    ' ä¿å­˜å‡¦ç†
+    ' Ctrl+Sã§ä¿å­˜
     g_objShell.SendKeys "^s"
     WScript.Sleep 1500
     
-    ' ƒTƒNƒ‰ƒGƒfƒBƒ^‚ğ•Â‚¶‚é
+    ' ã‚µã‚¯ãƒ©ã‚¨ãƒ‡ã‚£ã‚¿ã‚’é–‰ã˜ã‚‹
     g_objShell.SendKeys "%{F4}"
     WScript.Sleep 1000
 
-    ' ƒuƒ‰ƒEƒUƒEƒBƒ“ƒhƒE‚ğƒAƒNƒeƒBƒu‰»‚µ‚Äƒ^ƒu‚ğ•Â‚¶‚é
-    ' ‚±‚±‚à•sˆÀ’è‚É‚È‚é‰Â”\«‚ª‚ ‚é‚½‚ßA‚æ‚èŠmÀ‚È•û–@‚ğŒŸ“¢
-    ' ƒ^ƒu‚ğ•Â‚¶‚é
-    g_objShell.SendKeys "^w" ' Ctrl+W‚Åƒ^ƒu‚ğ•Â‚¶‚é
+    ' ãƒ–ãƒ©ã‚¦ã‚¶ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’ã‚¢ã‚¯ãƒ†ã‚£ãƒ–åŒ–ã—ã¦ã‚¿ãƒ–ã‚’é–‰ã˜ã‚‹
+    ' ã“ã“ã‚‚ä¸å®‰å®šã«ãªã‚‹å¯èƒ½æ€§ãŒã‚ã‚‹ãŸã‚ã€ã‚ˆã‚Šç¢ºå®Ÿãªæ–¹æ³•ã‚’æ¤œè¨
+    ' ã‚¿ãƒ–ã‚’é–‰ã˜ã‚‹
+    g_objShell.SendKeys "^w" ' Ctrl+Wã§ã‚¿ãƒ–ã‚’é–‰ã˜ã‚‹
     WScript.Sleep 1000
 End Sub
 
-' --- ˆêƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚İACSV ƒtƒ@ƒCƒ‹‚É‘‚«o‚· ---
+' --- ä¸€æ™‚ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã¿ã€CSV ãƒ•ã‚¡ã‚¤ãƒ«ã«æ›¸ãå‡ºã™ ---
 Sub ReadAndWriteData(person, tempFilePath, outFile)
     If g_fso.FileExists(tempFilePath) Then
         Dim objStream: Set objStream = CreateObject("ADODB.Stream")
@@ -124,11 +124,11 @@ Sub ReadAndWriteData(person, tempFilePath, outFile)
             char = objStream.ReadText(1)
             If char = vbCrLf Or char = vbLf Or char = vbCr Then
                 strLine = Replace(strLine, vbTab, ",")
-                ' o‹Î•ë‚ÆŒ“x‚ğ•\¦
-                If Left(strLine, 3) = "o‹Î•ë" Or Mid(strLine, 8, 2) = "Œ“x" Then
+                ' å‡ºå‹¤ç°¿ã¨æœˆåº¦ã‚’è¡¨ç¤º
+                If Left(strLine, 3) = "å‡ºå‹¤ç°¿" Or Mid(strLine, 8, 2) = "æœˆåº¦" Then
                     objWriteFile.WriteLine strLine
                 End If
-                ' –¼‘O
+                ' åå‰
                 If flgName = 2 Then
                     objWriteFile.WriteLine strLine
                     flgName = 0
@@ -136,23 +136,23 @@ Sub ReadAndWriteData(person, tempFilePath, outFile)
                 If flgName = 1 Then
                     flgName = 2
                 End If
-                If Left(strLine, 7) = "]‹Æˆõ‘I‘ğˆóü" Then
+                If Left(strLine, 7) = "å¾“æ¥­å“¡é¸æŠå°åˆ·" Then
                     flgName = 1
                 End If
 
-                ' Œ©o‚µs
-                If Left(strLine, 2) = "“ú•t" Then
+                ' è¦‹å‡ºã—è¡Œ
+                If Left(strLine, 2) = "æ—¥ä»˜" Then
                     mergedLine1 = strLine & ","
                 ElseIf mergedLine1 <> "" Then
                     mergedLine1 = mergedLine1 & strLine & ","
-                    If Left(strLine, 5) = "—\’è(‘Ş)" Then
+                    If Left(strLine, 5) = "äºˆå®š(é€€)" Then
                         mergedLine1 = Replace(mergedLine1, ",,", ",")
                         objWriteFile.WriteLine mergedLine1
                         mergedLine1 = ""
                     End If
                 End If
 
-                ' –¾×s
+                ' æ˜ç´°è¡Œ
                 If mergedLine2 <> "" Then
                     If g_regex.Test(strLine) Then
                         mergedLine2 = Replace(mergedLine2, ",,", ",")
@@ -171,7 +171,7 @@ Sub ReadAndWriteData(person, tempFilePath, outFile)
                 strLine = strLine & char
             End If
         Loop
-        ' c‚è‚Ì–¾×s‚ğo—Í
+        ' æ®‹ã‚Šã®æ˜ç´°è¡Œã‚’å‡ºåŠ›
         If mergedLine2 <> "" Then
             mergedLine2 = Replace(mergedLine2, ",,", ",")
             mergedLine2 = Replace(mergedLine2, ",,", ",")
@@ -182,24 +182,24 @@ Sub ReadAndWriteData(person, tempFilePath, outFile)
         Set objStream = Nothing
         objWriteFile.Close
     Else
-        WScript.Echo "ˆêƒtƒ@ƒCƒ‹ " & tempFilePath & " ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB"
+        WScript.Echo "ä¸€æ™‚ãƒ•ã‚¡ã‚¤ãƒ« " & tempFilePath & " ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚"
     End If
 End Sub
 
-' --- ‹Î–±ó‹µ—“‚ğˆê“Z‚ß‚É‚·‚é ---
+' --- å‹¤å‹™çŠ¶æ³æ¬„ã‚’ä¸€çºã‚ã«ã™ã‚‹ ---
 Function ReplaceSpecificComma(str)
     Dim parts, i
-    parts = Split(str, ",") ' •¶š—ñ‚ğ "," ‚Å•ªŠ„
+    parts = Split(str, ",") ' æ–‡å­—åˆ—ã‚’ "," ã§åˆ†å‰²
     
-    ' 7ŒÂ–Ú‚Æ8ŒÂ–Ú‚Ì—v‘f‚ğƒ`ƒFƒbƒN
+    ' 7å€‹ç›®ã¨8å€‹ç›®ã®è¦ç´ ã‚’ãƒã‚§ãƒƒã‚¯
     If UBound(parts) >= 8 Then
         Dim seventh, eighth
-        seventh = parts(7) ' 7ŒÂ–Ú‚Ì—v‘f
-        eighth = parts(8) ' 8ŒÂ–Ú‚Ì—v‘f
+        seventh = parts(7) ' 7å€‹ç›®ã®è¦ç´ 
+        eighth = parts(8) ' 8å€‹ç›®ã®è¦ç´ 
         If IsJapanese(seventh) And IsJapanese(eighth) Then
-            ' 8ŒÂ–Ú‚Ì’¼‘O‚Ì "," ‚ğ "A" ‚É•ÏŠ·
-            parts(7) = parts(7) & "A" & parts(8)
-            ' 8ŒÂ–Ú‚ğíœ
+            ' 8å€‹ç›®ã®ç›´å‰ã® "," ã‚’ "ã€" ã«å¤‰æ›
+            parts(7) = parts(7) & "ã€" & parts(8)
+            ' 8å€‹ç›®ã‚’å‰Šé™¤
             For i = 8 To UBound(parts) - 1
                 parts(i) = parts(i + 1)
             Next
@@ -207,21 +207,21 @@ Function ReplaceSpecificComma(str)
         End If
     End If
     
-    ReplaceSpecificComma = Join(parts, ",") ' C³Œã‚Ì•¶š—ñ‚ğ•Ô‚·
+    ReplaceSpecificComma = Join(parts, ",") ' ä¿®æ­£å¾Œã®æ–‡å­—åˆ—ã‚’è¿”ã™
 End Function
 
-' --- “ú–{Œêƒ`ƒFƒbƒN ---
+' --- æ—¥æœ¬èªãƒã‚§ãƒƒã‚¯ ---
 Function IsJapanese(str)
     If Len(str) > 0 Then
         Dim charCode
         charCode = AscW(Left(str, 1))
-        ' Š¿š (U+4E00 - )
+        ' æ¼¢å­— (U+4E00 - )
         If (charCode >= &H4E00) Then
             IsJapanese = True
-        ' ‚Ğ‚ç‚ª‚È (U+3040 - U+309F)
+        ' ã²ã‚‰ãŒãª (U+3040 - U+309F)
         ElseIf (charCode >= &H3040 And charCode <= &H309F) Then
             IsJapanese = True
-        ' ƒJƒ^ƒJƒi (U+30A0 - U+30FF)
+        ' ã‚«ã‚¿ã‚«ãƒŠ (U+30A0 - U+30FF)
         ElseIf (charCode >= &H30A0 And charCode <= &H30FF) Then
             IsJapanese = True
         Else
@@ -232,7 +232,7 @@ Function IsJapanese(str)
     End If
 End Function
 
-' --- ŠÂ‹«‚ÌƒNƒŠ[ƒ“ƒAƒbƒv ---
+' --- ç’°å¢ƒã®ã‚¯ãƒªãƒ¼ãƒ³ã‚¢ãƒƒãƒ— ---
 Sub CleanupEnvironment()
     Set g_objShell = Nothing
     Set g_fso = Nothing
