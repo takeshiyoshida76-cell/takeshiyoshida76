@@ -2,9 +2,9 @@
 Welcome to my GitHub portfolio! I'm a cloud enthusiast and developer, working on automation and AI-driven projects. Below is an overview of my skills, interests, and personality, visualized with a mind map.
 
 ### About Me
-- **Background:** AWS Certified Solutions Architect Associate (SAA-C03) holder, currently studying for Azure AZ-900 and AZ-104 to expand my cloud expertise.
-- **Projects:** Built multiple Google Apps Script tools for AKASHI time tracking automation, including login and error handling.
-- **Goal:** Create practical solutions for business efficiency while exploring AI and cloud technologies.
+- **Background:** AWS Certified Solutions Architect Associate (SAA-C03) holder, with certifications in IPA Fundamental Information Technology Engineer (FE) and Applied Information Technology Engineer (AP). Currently studying for Azure AZ-900 and AZ-104 to deepen cloud expertise.
+- **Projects:** Developed multiple Google Apps Script tools for AKASHI time tracking automation, featuring robust login and error-handling capabilities.
+- **Goal:** Build practical, efficient solutions for business automation while exploring AI and cloud technologies.
 
 ### My Skills and Interests
 ```mermaid
