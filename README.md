@@ -1,66 +1,87 @@
 ## takeshiyoshida76's Portfolio
-Welcome to my GitHub portfolio! I'm a cloud enthusiast and developer, working on automation and AI-driven projects. Below is an overview of my skills, interests, and personality, visualized with a mind map.
+Welcome to my GitHub portfolio! I'm a cloud enthusiast and automation developer passionate about building efficient, AI-powered solutions. This space showcases my skills, interests, and personality—visualized through a dynamic mind map.
 
 ### About Me
-- **Background:** AWS Certified Solutions Architect Associate (SAA-C03) holder, with certifications in IPA Fundamental Information Technology Engineer (FE) and Applied Information Technology Engineer (AP). Currently studying for Azure AZ-900 and AZ-104 to deepen cloud expertise.
-- **Projects:** Developed multiple Google Apps Script tools for AKASHI time tracking automation, featuring robust login and error-handling capabilities.
-- **Goal:** Build practical, efficient solutions for business automation while exploring AI and cloud technologies.
+- **Certifications:**
+  - AWS Certified Solutions Architect Associate (SAA-C03)
+  - IPA Fundamental Information Technology Engineer (FE)
+  - IPA Applied Information Technology Engineer (AP)
+  - Currently studying for Microsoft Azure AZ-900 and AZ-104
+- **Development Focus:**
+  - Creator of multiple Google Apps Script tools for AKASHI time tracking automation, featuring robust login flows and error-handling mechanisms
+  - Developed a multilingual program collection using 16 different programming languages
+  - Built an AI-powered Othello (Reversi) game with strategic evaluation logic
+- **Goal:**
+  Deliver practical, scalable solutions for business automation while exploring the intersection of cloud and AI technologies.
 
-### My Skills and Interests
+### Skills & Interests
+- **Skills**
 ```mermaid
 graph TD
-    A[takeshiyoshida76-cell] --> B[Skills]
-    A --> C[Interests]
-    A --> D[Personality]
+    classDef skill fill:#d0e6ff,stroke:#3399ff,stroke-width:2px;
+    B[Skills]:::skill --> B1[AWS SAA]:::skill
+    B --> B2[Azure Study]:::skill
+    B --> B3[Programming]:::skill
+    B --> B4[GitHub Portfolio]:::skill
+    B2 --> B2a[AZ-900]:::skill
+    B3 --> B3a[Google Apps Script]:::skill
+    B3a --> B3a1[AKASHI Automation]:::skill
+    B3 --> B3b[Multilingual Programs]:::skill
+    B3 --> B3c[AI Othello Game]:::skill
+    B4 --> B4a[AI Technologies]:::skill
+    B4 --> B4b[Design Docs]:::skill
+```
 
-    B --> B1[AWS SAA]
-    B --> B2[Azure Study]
-    B --> B3[Programming]
-    B --> B4[GitHub Portfolio]
-    B2 --> B2a[AZ-900]
-    B2 --> B2b[AZ-104]
-    B3 --> B3a[Google Apps Script]
-    B3 --> B3b[JavaScript]
-    B3a --> B3a1[AKASHI Automation]
-    B4 --> B4a[AI Technologies]
-    B4 --> B4b[Design Docs]
+- **Interests**
+```mermaid
+graph TD
+    classDef interest fill:#d5f5d5,stroke:#33aa33,stroke-width:2px;
+    C[Interests]:::interest --> C1[Running]:::interest
+    C --> C2[Beatles & Rock Music]:::interest
+    C --> C3[Wiki Editing]:::interest
+    C --> C4[Bookkeeping]:::interest
+    C1 --> C1a[Marathon]:::interest
+    C2 --> C2a[English Learning]:::interest
+    C3 --> C3a[Multi-genre Translation]:::interest
+    C4 --> C4a[Accounting History]:::interest
+```
 
-    C --> C1[Running]
-    C --> C2[Beatles]
-    C --> C3[Wikipedia Editing]
-    C --> C4[Bookkeeping]
-    C1 --> C1a[Saitama Marathon]
-    C2 --> C2a[English Learning]
-    C3 --> C3a[Multi-genre Translation]
-    C4 --> C4a[Accounting History]
-
-    D --> D1[Curious]
-    D --> D2[Practical]
-    D --> D3[Organized]
-    D --> D4[Slightly Anxious]
-    D1 --> D1a[Diverse Challenges]
-    D2 --> D2a[Business Efficiency]
-    D3 --> D3a[Goal Setting]
-    D4 --> D4a[Learning Concerns]
+- **Personality**
+```mermaid
+graph TD
+    classDef personality fill:#f0e6ff,stroke:#9933cc,stroke-width:2px;
+    D[Personality]:::personality --> D1[Curious]:::personality
+    D --> D2[Practical]:::personality
+    D --> D3[Flexible Thinker]:::personality
+    D --> D4[Slightly Anxious]:::personality
+    D1 --> D1a[Diverse Challenges]:::personality
+    D2 --> D2a[Business Efficiency]:::personality
+    D3 --> D3a[Value-Oriented]:::personality
+    D4 --> D4a[Learning Concerns]:::personality
 ```
 
 ### Projects
 - **AKASHI Automation Scripts:**
-  - Built with Google Apps Script (JavaScript).
-  - Features: Automated login, timesheet extraction, and WAF bypass for AKASHI time tracking.
-  - Includes design documents for clear process outlines.
-- **Future Plans:**
-  - Integrate Azure Functions with automation scripts.
-  - Build a demo web app using React and GitHub Pages.
+  - Developed using Google Apps Script (JavaScript)
+  - Key Features: Automated login, timesheet extraction, and WAF bypass for AKASHI time tracking
+  - Includes detailed design documentation for transparency and maintainability
+- **Multilingual Program Collection:**
+  - A set of simple programs written in 16 different languages, showcasing syntax diversity and cross-language understanding
+- **AI Othello Game:**
+  - Built with strategic evaluation logic and AI decision-making
+  - Demonstrates game theory and algorithmic design
+- **Upcoming Initiatives:**
+  - Integrate Azure Functions to enhance automation workflows
+  - Build a demo web app using React and GitHub Pages to showcase cloud-native development
 
-### Discription
-This repository is a personal portfolio created using various programming languages ​​and AI technologies. It also includes design documents.
-- The `src/` folder contains code written in Python, VBScript, etc.
-- The `docs/` folder contains documentation related to the project's design.
+### Repository Structure
+This portfolio is a collection of projects built with various programming languages and AI technologies, accompanied by design documentation.
+- `src/` — Source code (Python, VBScript, etc.)
+- `docs/` — Design documents and technical specifications
 
-### Contact
-- Check my repositories for more projects!
-- Reach out via GitHub Issues for collaboration.
+### Contact & Collaboration
+- Explore more projects in my repositories.
+- For collaboration or inquiries, feel free to open an issue.
 
 ## License
 MIT License ([LICENSE](LICENSE)).
