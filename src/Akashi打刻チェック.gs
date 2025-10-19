@@ -8,8 +8,8 @@
  * 3. 退勤通知: 予定終了時刻の15分後以降、未打刻なら通知。
  * 4. 理由欄 に '残業終了=HH:MM' の形式で残業終了時刻が記載されていた場合、
  * その HH:MM を新しい退勤予定時刻として採用し、チェックに使用する。
- * 5. 特定の従業員を特定の日付でアラート対象外にする設定をスプレッドシートで管理。
- *    - 除外設定された従業員は、出勤アラートと退勤アラートの両方が抑制される。
+ * 5. 特定の社員を特定の日付でアラート対象外にする設定をスプレッドシートで管理。
+ *    - 除外設定された社員は、出勤アラートと退勤アラートの両方が抑制される。
  */
 
 // ==============================================================================
@@ -122,7 +122,7 @@ function getLeaveType(statusText) {
   if (!statusText) return null;
   if (statusText.match(/午前半年休/)) return "午前休";
   if (statusText.match(/午後半年休/)) return "午後休";
-  if (statusText.match(/年休|振替休日|代休|記念日休暇/)) return "休暇";
+  if (statusText.match(/年休|振替休日|代休|記念日休暇|忌引/)) return "休暇";
   return null;
 }
 
@@ -234,7 +234,7 @@ function checkAttendance(sessionCookie) {
   const messages = [];
   const excludedNames = getExcludedNames(todayString); // 除外対象者リストを取得
 
-  Logger.log('情報: 抽出された全従業員数: ' + employeeData.length);
+  Logger.log('情報: 抽出された全社員数: ' + employeeData.length);
 
   employeeData.forEach(employee => {
     const lastName = employee.name.trim().split(/\s+/)[0];
@@ -566,7 +566,7 @@ function sendToGoogleChat(message, includeMention = true) {
 }
 
 /**
- * 勤怠HTMLを解析し、従業員データを抽出
+ * 勤怠HTMLを解析し、社員データを抽出
  */
 function parseAttendanceHTML(html) {
   const employees = [];
