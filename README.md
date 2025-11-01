@@ -24,7 +24,7 @@
 | Project | Tech | Key Features |
 |--------|------|--------------|
 | **AKASHI Time Tracking Automation** | Google Apps Script (JavaScript) | Secure login, WAF bypass, error handling, timesheet extraction. Full design docs included. |
-| **Multilingual Program Collection** | 16 Languages (Python, Rust, Go, etc.) | Demonstrates syntax diversity and cross-language design patterns. Great for learning. |
+| **Multilingual Program Collection** | 16 Languages (Python, Java, Go, COBOL, etc.) | Demonstrates syntax diversity and cross-language design patterns. Great for learning. |
 | **AI-Powered Othello (Reversi)** | Algorithmic AI + Evaluation Logic | Strategic decision-making engine. Explores game theory and heuristic search. |
 | **Upcoming** | Azure Functions + React + GitHub Pages | Cloud-native demo web app for automation workflows (in development) |
 
@@ -47,7 +47,7 @@ graph TD
     B[Skills]:::skill --> B1[AWS SAA-C03<br>May 2025]:::skill
     B --> B2[Azure]:::skill
     B2 --> B2a[AZ-900<br>Oct 2025]:::skill
-    B2 --> B2b[AZ-104<br>Target: Oct 2025]:::skill
+    B2 --> B2b[AZ-104<br>Target: Dec 2025]:::skill
     B --> B3[Automation]:::skill
     B3 --> B3a[Google Apps Script]:::skill
     B3a --> B3a1[AKASHI Auto]:::skill
