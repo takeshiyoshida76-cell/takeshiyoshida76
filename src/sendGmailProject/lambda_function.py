@@ -56,8 +56,8 @@ def lambda_handler(event, context):
         # エラーが発生した場合も、処理を継続するようにtry-exceptブロックで囲む
         try:
             generated_content = generate_summary_and_actions_with_gemini(report_text)
-            # 要約・アクションのヘッダーを付加
-            generated_content_header = "\n\n要約と次へのアクション案(自動生成)：\n"
+            # 要約・アクションのヘッダーを付加（空行を調整）
+            generated_content_header = "\n\n要約と次へのアクション案(自動生成):\n"
         except Exception as e:
             print(f"Gemini API呼び出し中にエラーが発生しました。要約を付加せずにメールを送信します。エラー: {e}")
             generated_content = ""
@@ -93,18 +93,20 @@ def generate_summary_and_actions_with_gemini(text):
 
     # APIキーをクエリパラメータに追加
     #GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent"
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
+    #GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent"
     # Geminiへのプロンプトを一つのリクエストにまとめる
     prompt = f"""
     以下の日報を簡潔に要約し、その要約に基づいて、どのような具体的なアクションを取るべきかを箇条書きで3つ提案してください。
+    出力は以下の形式に厳密に従ってください。余計な前置きや説明は一切入れないこと。
 
     日報テキスト:
     {text}
 
     出力形式:
     要約:
-    [要約テキスト]
-    
+    [要約を2〜4行程度にまとめ、1行が長くなりすぎないよう適度に改行してください]
+
     アクション案:
     - [アクション1]
     - [アクション2]
@@ -112,25 +114,24 @@ def generate_summary_and_actions_with_gemini(text):
     """
 
     data = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "text": prompt
-                    }
-                ]
-            }
-        ]
+        "contents": [{"parts": [{"text": prompt}]}]
     }
     
-    # params引数でAPIキーを渡し、Authorizationヘッダーは不要
-    response = requests.post(GEMINI_API_URL, params={'key': api_key}, json=data)
+    # APIキーを渡すためのヘッダーを作成
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key
+    }
+    response = requests.post(GEMINI_API_URL, headers=headers, json=data)
     response.raise_for_status() # HTTPエラーを発生させる
     
     result = response.json()
     
     if 'candidates' in result and len(result['candidates']) > 0:
-        return result['candidates'][0]['content']['parts'][0]['text']
+        raw_output = result['candidates'][0]['content']['parts'][0]['text']
+        # 余計な ``` や *** などのマークダウンを除去（念のため）
+        cleaned = raw_output.strip().replace('```', '').replace('***', '')
+        return cleaned
     else:
         print(f"APIからの応答に候補が含まれていませんでした。応答: {result}")
         return "APIからの応答がありませんでした。"
