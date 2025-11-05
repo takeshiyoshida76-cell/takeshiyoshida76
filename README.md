@@ -26,6 +26,7 @@
 | **AKASHI Time Tracking Automation** | Google Apps Script (JavaScript) | Secure login, WAF bypass, error handling, timesheet extraction. Full design docs included. |
 | **Multilingual Program Collection** | 16 Languages (Python, Java, Go, COBOL, etc.) | Demonstrates syntax diversity and cross-language design patterns. Great for learning. |
 | **AI-Powered Othello (Reversi)** | Algorithmic AI + Evaluation Logic | Strategic decision-making engine. Explores game theory and heuristic search. |
+| **Daily Report AI Summary & Email (Lambda)** | Python + AWS Lambda + Gemini API + Gmail API | Auto-generates concise summaries and action items from raw reports using Gemini AI. Sends formatted email via Gmail API. Secure token management with AWS SSM. Skips holidays. |
 | **Upcoming** | Azure Functions + React + GitHub Pages | Cloud-native demo web app for automation workflows (in development) |
 
 ---
