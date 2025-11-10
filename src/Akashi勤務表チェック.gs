@@ -587,18 +587,17 @@ function main() {
 
 /**
  * 月次勤怠チェック & Chat通知
- * @param {string} sessionCookie
  */
 function checkMonthlyAttendance(sessionCookie) {
   const yearMonth = getTargetYearMonth();
   let cookieMap = cookieStringToMap(sessionCookie);
-  const errorsByEmployee = {}; // 従業員名をキーとしたエラー配列
+  const errorsByEmployee = {};
   let totalErrors = 0;
   const { dateStr: todayStr } = getCurrentJSTAndDateString();
 
   let res = fetchPageHTML(cookieMap, MANAGER_URL);
   if (!res || !res.html || res.html.includes('ログイン')) {
-    sendToGoogleChat(`【勤怠チェック失敗】マネージャーページ取得失敗`, false);
+    sendToGoogleChat(`【勤怠チェック失敗】対象月: ${yearMonth} マネージャーページ取得失敗`, false);
     return;
   }
   cookieMap = res.cookieMap;
@@ -619,9 +618,7 @@ function checkMonthlyAttendance(sessionCookie) {
     if (!employeeData || employeeData.days.length === 0) return;
 
     const employeeName = employeeData.name;
-    if (!errorsByEmployee[employeeName]) {
-      errorsByEmployee[employeeName] = [];
-    }
+    if (!errorsByEmployee[employeeName]) errorsByEmployee[employeeName] = [];
 
     employeeData.days.forEach(day => {
       if (day.dateStr >= todayStr) return;
@@ -635,78 +632,88 @@ function checkMonthlyAttendance(sessionCookie) {
         overtime = minutesToTime(timeToMinutes(day.totalTime) - 480);
       }
 
-      // 全ルールチェック (VBS移植)
       let errorMessage = '';
+
+      // 1. 打刻忘れ → 一律警告
       if ((!isTime(day.clockIn) && isTime(day.actualIn)) || (!isTime(day.clockOut) && isTime(day.actualOut))) {
-        if (!checkReason(reason)) errorMessage = '打刻忘れがあるが理由が記載されていない可能性あり';
+        errorMessage = '打刻忘れがあります（理由が記載されていても要確認）';
       }
-      if (day.status.includes('遅刻') && !checkReason(reason)) errorMessage = '勤務状況に遅刻があるが理由が記載されていない可能性あり';
-      if (isTime(day.clockOut) && isTime(day.plannedOut) && timeToMinutes(day.clockOut) < timeToMinutes(day.plannedOut) && !checkReason(reason)) {
-        errorMessage = '退勤予定前に打刻されているが理由が記載されていない可能性あり';
+      // 2. 30分乖離 → 一律警告
+      if (isTime(day.clockIn) && isTime(day.actualIn) && Math.abs(timeToMinutes(day.clockIn) - timeToMinutes(day.actualIn)) >= 30) {
+        errorMessage = '出勤打刻と実績が30分以上乖離しています（理由が記載されていても要確認）';
       }
-      if (isTime(day.clockIn) && isTime(day.actualIn) && Math.abs(timeToMinutes(day.clockIn) - timeToMinutes(day.actualIn)) >= 30 && !checkReason(reason)) {
-        errorMessage = '出勤打刻と実績が30分以上乖離しているが、理由が記載されていない可能性あり';
-      }
-      if (reason.includes('在宅勤務') && !day.status.includes('在宅勤務') && !['出社', '出勤', '移動'].some(k => reason.includes(k))) {
-        errorMessage = '理由欄に在宅勤務とあるが勤務状況に未記載、出社していなければ勤務状況を更新すること';
-      }
-      if (day.status.includes('在宅勤務') && ['出社', 'へ出勤', 'に出勤', '移動'].some(k => reason.includes(k))) {
-        errorMessage = '勤務状況が在宅勤務とあるが理由欄に出社がある';
-      }
-      if (isTime(day.totalTime) && isTime(day.breakTime)) {
-        let totalMin = timeToMinutes(day.totalTime);
-        const breakMin = timeToMinutes(day.breakTime);
-        if (day.status.includes('午前半年休')) totalMin -= 180;
-        else if (day.status.includes('午後半年休')) totalMin -= 270;
-        else if (day.status.match(/年休|記念日休暇/)) totalMin -= 450;
-        if (totalMin > 360 && breakMin < 45) errorMessage = '実働6時間超で休憩45分未満';
-        if (totalMin > 480 && breakMin < 60) errorMessage = '実働8時間超で休憩1時間未満';
-      }
-      if (day.status.includes('遅刻') && isTime(day.lateTime) && timeToMinutes(day.lateTime) > 0 && !checkReason(reason)) {
-        errorMessage = '遅刻しているが理由欄に遅刻理由が記載されていない可能性あり';
-      }
-      if (day.status.includes('遅刻') && isTime(day.plannedIn) && isTime(day.actualIn)) {
-        const breakMin = timeToMinutes(day.breakTime);
-        const lateMin = timeToMinutes(day.lateTime);
-        if (lateMin >= 180 && breakMin > 30) errorMessage = '休憩時間が遅刻時間として換算されている可能性あり';
-      }
-      if (day.status.includes('早退') && isTime(day.lateTime) && timeToMinutes(day.lateTime) > 0 && !checkReason(reason)) {
-        errorMessage = '早退しているが理由欄に早退理由が記載されていない可能性あり';
-      }
-      if (day.status.includes('早退') && isTime(day.plannedOut) && isTime(day.actualOut)) {
-        const breakMin = timeToMinutes(day.breakTime);
-        const lateMin = timeToMinutes(day.lateTime);
-        if (lateMin >= 240 && breakMin > 30) errorMessage = '休憩時間が早退時間として換算されている可能性あり';
-      }
-      if (day.status.includes('電車遅延')) {
-        if (day.clockIn === day.plannedIn) errorMessage = '電車遅延理由があるが実績出勤時間が予定と同一となっている';
-        if (day.status.includes('遅刻')) errorMessage = '電車遅延にも関わらず勤務状況に遅刻が含まれている';
-      }
-      if (isTime(overtime) && timeToMinutes(overtime) > 0 && (!checkReason(reason) || !reason.includes('指示'))) {
-        if (!(employeeData.formatType === 'flex' && timeToMinutes(overtime) <= 60)) {
-          errorMessage = '残業があるが理由または指示者が記載されていない';
+
+      // 3. 遅刻・早退 → 元のキーワードチェック（理由必須）
+      if (!errorMessage) {
+        if (day.status.includes('遅刻') && !checkReason(reason)) {
+          errorMessage = '勤務状況に遅刻があるが理由が記載されていない可能性あり';
         }
-      }
-      if ((day.status.includes('午前半年休') || day.status.includes('午後半年休')) && isTime(overtime) && timeToMinutes(overtime) > 0) {
-        errorMessage = '半日休暇にもかかわらず残業が入力されている';
-      }
-      if ((day.status.includes('午前半年休') || day.status.includes('午後半年休')) && isTime(day.breakTime) && timeToMinutes(day.breakTime) >= 45) {
-        errorMessage = '半日休暇にもかかわらず勤務時間外の不要な休憩時間が入力されている可能性あり';
-      }
-      if (day.status.includes('振替出勤') && (!checkReason(reason) || !reason.includes('指示'))) {
-        errorMessage = '振替出勤にもかかわらず、休出理由または指示者が記載されていない';
-      }
-      if (day.status.includes('振替休日') && !['の振休', 'の振替休日'].some(k => reason.includes(k))) {
-        errorMessage = '振替休日にもかかわらず、振替元の日付が記載されていない';
-      }
-      if (day.status.includes('休日出勤') && (!checkReason(reason) || !reason.includes('指示'))) {
-        errorMessage = '休日出勤にもかかわらず、休出理由または指示者が記載されていない';
-      }
-      if (day.status.includes('代休') && !reason.includes('代休')) {
-        errorMessage = '代休にもかかわらず、代休元の日付が記載されていない';
-      }
-      if (day.status.includes('年休') && !day.status.includes('半年休') && day.status.includes('在宅勤務')) {
-        errorMessage = '有休と在宅勤務が同時に記載されている';
+        if (day.status.includes('早退') && !checkReason(reason)) {
+          errorMessage = '早退しているが理由欄に早退理由が記載されていない可能性あり';
+        }
+        if (day.status.includes('遅刻') && isTime(day.lateTime) && timeToMinutes(day.lateTime) > 0 && !checkReason(reason)) {
+          errorMessage = '遅刻しているが理由欄に遅刻理由が記載されていない可能性あり';
+        }
+        if (day.status.includes('遅刻') && isTime(day.plannedIn) && isTime(day.actualIn)) {
+          const breakMin = timeToMinutes(day.breakTime);
+          const lateMin = timeToMinutes(day.lateTime);
+          if (lateMin >= 180 && breakMin > 30) errorMessage = '休憩時間が遅刻時間として換算されている可能性あり';
+        }
+        if (day.status.includes('早退') && isTime(day.plannedOut) && isTime(day.actualOut)) {
+          const breakMin = timeToMinutes(day.breakTime);
+          const lateMin = timeToMinutes(day.lateTime);
+          if (lateMin >= 240 && breakMin > 30) errorMessage = '休憩時間が早退時間として換算されている可能性あり';
+        }
+
+        // 4. その他すべてのルール（変更なし）
+        if (isTime(day.clockOut) && isTime(day.plannedOut) && timeToMinutes(day.clockOut) < timeToMinutes(day.plannedOut) && !checkReason(reason)) {
+          errorMessage = '退勤予定前に打刻されているが理由が記載されていない可能性あり';
+        }
+        if (reason.includes('在宅勤務') && !day.status.includes('在宅勤務') && !['出社', '出勤', '移動'].some(k => reason.includes(k))) {
+          errorMessage = '理由欄に在宅勤務とあるが勤務状況に未記載、出社していなければ勤務状況を更新すること';
+        }
+        if (day.status.includes('在宅勤務') && ['出社', 'へ出勤', 'に出勤', '移動'].some(k => reason.includes(k))) {
+          errorMessage = '勤務状況が在宅勤務とあるが理由欄に出社がある';
+        }
+        if (isTime(day.totalTime) && isTime(day.breakTime)) {
+          let totalMin = timeToMinutes(day.totalTime);
+          const breakMin = timeToMinutes(day.breakTime);
+          if (day.status.includes('午前半年休')) totalMin -= 180;
+          else if (day.status.includes('午後半年休')) totalMin -= 270;
+          else if (day.status.match(/年休|記念日休暇/)) totalMin -= 450;
+          if (totalMin > 360 && breakMin < 45) errorMessage = '実働6時間超で休憩45分未満';
+          if (totalMin > 480 && breakMin < 60) errorMessage = '実働8時間超で休憩1時間未満';
+        }
+        if (day.status.includes('電車遅延')) {
+          if (day.clockIn === day.plannedIn) errorMessage = '電車遅延理由があるが実績出勤時間が予定と同一となっている';
+          if (day.status.includes('遅刻')) errorMessage = '電車遅延にも関わらず勤務状況に遅刻が含まれている';
+        }
+        if (isTime(overtime) && timeToMinutes(overtime) > 0 && (!checkReason(reason) || !reason.includes('指示'))) {
+          if (!(employeeData.formatType === 'flex' && timeToMinutes(overtime) <= 60)) {
+            errorMessage = '残業があるが理由または指示者が記載されていない';
+          }
+        }
+        if ((day.status.includes('午前半年休') || day.status.includes('午後半年休')) && isTime(overtime) && timeToMinutes(overtime) > 0) {
+          errorMessage = '半日休暇にもかかわらず残業が入力されている';
+        }
+        if ((day.status.includes('午前半年休') || day.status.includes('午後半年休')) && isTime(day.breakTime) && timeToMinutes(day.breakTime) >= 45) {
+          errorMessage = '半日休暇にもかかわらず勤務時間外の不要な休憩時間が入力されている可能性あり';
+        }
+        if (day.status.includes('振替出勤') && (!checkReason(reason) || !reason.includes('指示'))) {
+          errorMessage = '振替出勤にもかかわらず、休出理由または指示者が記載されていない';
+        }
+        if (day.status.includes('振替休日') && !['の振休', 'の振替休日'].some(k => reason.includes(k))) {
+          errorMessage = '振替休日にもかかわらず、振替元の日付が記載されていない';
+        }
+        if (day.status.includes('休日出勤') && (!checkReason(reason) || !reason.includes('指示'))) {
+          errorMessage = '休日出勤にもかかわらず、休出理由または指示者が記載されていない';
+        }
+        if (day.status.includes('代休') && !reason.includes('代休')) {
+          errorMessage = '代休にもかかわらず、代休元の日付が記載されていない';
+        }
+        if (day.status.includes('年休') && !day.status.includes('半年休') && day.status.includes('在宅勤務')) {
+          errorMessage = '有休と在宅勤務が同時に記載されている';
+        }
       }
 
       if (errorMessage) {
@@ -721,8 +728,10 @@ function checkMonthlyAttendance(sessionCookie) {
     });
   });
 
+  // 通知（0件でも送信）
+  let message = '';
   if (totalErrors > 0) {
-    let message = `【勤怠指摘事項_${yearMonth}】 ${totalErrors}件\n`;
+    message = `【勤怠指摘事項_${yearMonth}】 ${totalErrors}件\n`;
     for (const [name, empErrors] of Object.entries(errorsByEmployee)) {
       if (empErrors.length === 0) continue;
       message += `\n対象者=${name} さん\n`;
@@ -731,6 +740,9 @@ function checkMonthlyAttendance(sessionCookie) {
       });
     }
     sendToGoogleChat(message, true);
+  } else {
+    message = `【勤怠チェック完了】対象月: ${yearMonth}\n指摘事項なし（0件）です。全て問題ありませんでした。`;
+    sendToGoogleChat(message, false);
   }
 }
 
