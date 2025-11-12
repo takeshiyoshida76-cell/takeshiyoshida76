@@ -170,7 +170,7 @@ function checkNamesInSheets() {
           if (!adminSubMap.has(subKey)) {
             adminSubMap.set(subKey, { customer, caseName, items: [] });
           }
-          adminSubMap.get(subKey).items.push({ name: name47String, department });
+          adminSubMap.get(subKey).items.push({ name: nameString, department });
 
           missingCount++;
         }
