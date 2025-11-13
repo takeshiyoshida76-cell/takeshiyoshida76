@@ -8,6 +8,7 @@ import datetime
 import holidays
 import requests
 import google.auth
+import time
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from email.mime.text import MIMEText
@@ -85,6 +86,7 @@ def lambda_handler(event, context):
 def generate_summary_and_actions_with_gemini(text):
     """
     Gemini APIを呼び出して、テキストの要約とアクションを生成します。
+    一時的なエラー（503など）に対して最大3回リトライします。
     """
     # 環境変数からAPIキーを取得
     api_key = os.environ.get('GEMINI_API_KEY')
@@ -132,19 +134,55 @@ def generate_summary_and_actions_with_gemini(text):
         "Content-Type": "application/json",
         "x-goog-api-key": api_key
     }
-    response = requests.post(GEMINI_API_URL, headers=headers, json=data)
-    response.raise_for_status() # HTTPエラーを発生させる
-    
-    result = response.json()
-    
-    if 'candidates' in result and len(result['candidates']) > 0:
-        raw_output = result['candidates'][0]['content']['parts'][0]['text']
-        # 余計な ``` や *** などのマークダウンを除去（念のため）
-        cleaned = raw_output.strip().replace('```', '').replace('***', '')
-        return cleaned
-    else:
-        print(f"APIからの応答に候補が含まれていませんでした。応答: {result}")
-        return "APIからの応答がありませんでした。"
+
+    max_retries = 3
+    base_delay = 2  # 秒
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(GEMINI_API_URL, headers=headers, json=data, timeout=30)
+            
+            # 成功（2xx）なら即返却
+            if response.status_code == 200:
+                result = response.json()
+                if 'candidates' in result and len(result['candidates']) > 0:
+                    raw_output = result['candidates'][0]['content']['parts'][0]['text']
+                    cleaned = raw_output.strip().replace('```', '').replace('***', '')
+                    return cleaned
+                else:
+                    print(f"Gemini API応答に候補がありません（試行{attempt+1}）。応答: {result}")
+                    return "Geminiからの応答が空でした。"
+
+            # 5xx系エラー or 503 → リトライ
+            elif response.status_code >= 500:
+                print(f"Gemini API {response.status_code} エラー（試行{attempt+1}/{max_retries}）。リトライします...")
+            
+            # 429（Rate Limit）もリトライ対象に追加
+            elif response.status_code == 429:
+                print(f"Gemini API 429 Rate Limit（試行{attempt+1}/{max_retries}）。リトライします...")
+
+            else:
+                # 4xx系はリトライせず即失敗（APIキー不正など）
+                print(f"Gemini API {response.status_code} エラー（リトライせず）。応答: {response.text}")
+                return "Gemini API呼び出しに失敗しました（復旧不能エラー）。"
+
+        except requests.exceptions.Timeout:
+            print(f"Gemini API タイムアウト（試行{attempt+1}/{max_retries}）。リトライします...")
+        except requests.exceptions.ConnectionError:
+            print(f"Gemini API 接続エラー（試行{attempt+1}/{max_retries}）。リトライします...")
+        except Exception as e:
+            print(f"Gemini API その他例外（試行{attempt+1}/{max_retries}）: {e}。リトライします...")
+
+        # 最後の試行でなければバックオフ待機
+        if attempt < max_retries - 1:
+            delay = base_delay * (2 ** attempt)  # 指数バックオフ: 2s → 4s → 8s
+            print(f"{delay}秒待機してリトライ...")
+            time.sleep(delay)
+        else:
+            print("全リトライ失敗。要約なしでメール送信を継続します。")
+
+    # 全失敗時は空文字を返す（呼び出し元でフォールバック）
+    return ""
 
 def get_credentials():
     """
