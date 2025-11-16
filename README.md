@@ -27,7 +27,7 @@
 | **AKASHI Auto** | Google Apps Script | Logs in, grabs timesheets, survives WAF — docs included |
 | **16 Languages** | Python → COBOL | Syntax playground. Learn by comparison |
 | **AI Othello** | Pure logic | Thinks 5 moves ahead. No fluff |
-| **Daily Report AI** | Lambda + Gemini + Gmail | Summarizes, emails, skips holidays, retries at 9 AM — **fuzzy-proof** |
+| **Daily Report AI** | Lambda + Gemini + Gmail | Summarizes, emails, skips holidays |
 | **Next Up** | Azure Functions + React | Workflow demo. Coming soon-ish |
 
 ---
