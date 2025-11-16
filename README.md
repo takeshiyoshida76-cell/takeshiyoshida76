@@ -1,11 +1,12 @@
 ## 🌟 takeshiyoshida76's Portfolio 🏃
-**Cloud × Automation × AI** – Building practical, scalable solutions for business efficiency
+**Cloud × Automation × AI** – *fuzzy and stoic* solutions for real-world chaos
 
-[![GitHub followers](https://img.shields.io/github/followers/takeshiyoshida76?style=social)](https://github.com/takeshiyoshida76)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?logo=linkedin)](https://www.linkedin.com/in/your-linkedin-id) <!-- Update with your ID -->
+[![GitHub followers](https://img.shields.io/github/followers/takeshiyoshida76-cell?style=social)](https://github.com/takeshiyoshida76-cell)
+[![X](https://img.shields.io/badge/X-@RunningTsum-black?logo=x)](https://x.com/RunningTsum)
 
-> **"Automate the tedious. Free human time."**  
-> Cloud engineer & automation developer blending AWS, Azure, and Google Apps Script with AI-driven logic.
+> **"fuzzy and stoic"**  
+> Life’s messy. Embrace the blur (*fuzzy*). Keep moving (*stoic*).  
+> I automate chaos so you don’t have to.
 
 ---
 
@@ -13,29 +14,29 @@
 
 | Category | Details |
 |--------|---------|
-| **Certifications** | - **AWS Certified Solutions Architect – Associate (SAA-C03)** – *May 2025* ✅<br>- **Microsoft Azure Fundamentals (AZ-900)** – *Oct 2025* ✅<br>- **Microsoft Azure Administrator (AZ-104)** – *Targeting Dec 2025*<br>- IPA Applied Information Technology Engineer (AP) – *Nov 2012* ✅<br>- IPA Fundamental Information Technology Engineer (FE) – *May 2001* ✅ |
-| **Focus Areas** | Business automation, cloud integration, multilingual programming, AI algorithms |
-| **Mission** | Deliver maintainable, documented, and scalable automation tools that solve real-world problems |
+| **Certs** | AWS SAA-C03 · Azure AZ-900 · AZ-104 (Dec target) · IPA AP & FE |
+| **Focus** | Automation, cloud, polyglot code, AI that *just works* |
+| **Mission** | Ship solid tools that survive real-world fuzziness |
 
 ---
 
 ### Highlight Projects
 
-| Project | Tech | Key Features |
-|--------|------|--------------|
-| **AKASHI Time Tracking Automation** | Google Apps Script (JavaScript) | Secure login, WAF bypass, error handling, timesheet extraction. Full design docs included. |
-| **Multilingual Program Collection** | 16 Languages (Python, Java, Go, COBOL, etc.) | Demonstrates syntax diversity and cross-language design patterns. Great for learning. |
-| **AI-Powered Othello (Reversi)** | Algorithmic AI + Evaluation Logic | Strategic decision-making engine. Explores game theory and heuristic search. |
-| **Daily Report AI Summary & Email (Lambda)** | Python + AWS Lambda + Gemini API + Gmail API | Auto-generates concise summaries and action items from raw reports using Gemini AI. Sends formatted email via Gmail API. Secure token management with AWS SSM. Skips holidays. |
-| **Upcoming** | Azure Functions + React + GitHub Pages | Cloud-native demo web app for automation workflows (in development) |
+| Project | Tech | Vibe |
+|--------|------|------|
+| **AKASHI Auto** | Google Apps Script | Logs in, grabs timesheets, survives WAF — docs included |
+| **16 Languages** | Python → COBOL | Syntax playground. Learn by comparison |
+| **AI Othello** | Pure logic | Thinks 5 moves ahead. No fluff |
+| **Daily Report AI** | Lambda + Gemini + Gmail | Summarizes, emails, skips holidays, retries at 9 AM — **fuzzy-proof** |
+| **Next Up** | Azure Functions + React | Workflow demo. Coming soon-ish |
 
 ---
 
-### Repository Structure
+### Repo Layout
 
 ```
-├── src/     → Source code in multiple languages
-├── docs/    → Design documents, architecture diagrams, specifications
+├── src/     → Code in many tongues
+├── docs/    → Diagrams, specs, "why"
 └── README.md → You're here!
 ```
 
@@ -45,17 +46,13 @@
 ```mermaid
 graph TD
     classDef skill fill:#d0e6ff,stroke:#3399ff,stroke-width:2px;
-    B[Skills]:::skill --> B1[AWS SAA-C03<br>May 2025]:::skill
+    B[Skills]:::skill --> B1[AWS]:::skill
     B --> B2[Azure]:::skill
-    B2 --> B2a[AZ-900<br>Oct 2025]:::skill
-    B2 --> B2b[AZ-104<br>Target: Dec 2025]:::skill
     B --> B3[Automation]:::skill
-    B3 --> B3a[Google Apps Script]:::skill
-    B3a --> B3a1[AKASHI Auto]:::skill
-    B3 --> B3b[16 Languages]:::skill
-    B --> B4[AI & Algorithms]:::skill
-    B4 --> B4a[Othello AI]:::skill
-    B --> B5[Documentation]:::skill
+    B3 --> B3a[GAS]:::skill
+    B3 --> B3b[16 Lang]:::skill
+    B --> B4[AI Logic]:::skill
+    B --> B5[Docs]:::skill
 ```
 
 ---
@@ -64,19 +61,19 @@ graph TD
 ```mermaid
 graph TD
     classDef interest fill:#d5f5d5,stroke:#33aa33,stroke-width:2px;
-    C[Me]:::interest --> C1[Full Marathon Finisher]:::interest
-    C --> C2[Beatles & Classic Rock]:::interest
-    C --> C3[Wikipedia Editor\nMultilingual Translation]:::interest
-    C --> C4[Bookkeeping & Accounting History]:::interest
-    C --> C5[Curious, Practical, Flexible]:::interest
+    C[Me]:::interest --> C1[fuzzy and stoic]:::interest
+    C --> C2[Full Marathon Finisher]:::interest
+    C --> C3[Beatles & Classic Rock]:::interest
+    C --> C4[Wiki Editor\nMultilingual]:::interest
+    C --> C5[Accounting History]:::interest
 ```
 
 ---
 
 ### Contact & Collaboration
-- Like what you see? **Star this repo** or **open an issue** to connect!
-- Questions about design docs, code, or collaboration? I'm all ears.
-- Propose ideas → [Issues](https://github.com/takeshiyoshida76/portfolio/issues)
+- Like it? **Star** or **open an issue**
+- Questions on code, docs, or ideas? Always welcome
+- Propose → [Issues](https://github.com/takeshiyoshida76/portfolio/issues)
 
 ---
 
