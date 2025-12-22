@@ -122,7 +122,7 @@ function getLeaveType(statusText) {
   if (!statusText) return null;
   if (statusText.match(/午前半年休/)) return "午前休";
   if (statusText.match(/午後半年休/)) return "午後休";
-  if (statusText.match(/年休|振替休日|代休|記念日休暇|忌引/)) return "休暇";
+  if (statusText.match(/年休|振替休日|代休|記念日休暇|忌引|産休/)) return "休暇";
   return null;
 }
 
