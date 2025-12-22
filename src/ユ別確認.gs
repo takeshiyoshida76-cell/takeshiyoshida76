@@ -2,6 +2,7 @@
  * ユ別に登録されている名前が、BP情報一覧に登録されているかをチェックし、
  * 未登録の名前を管理者単位および顧客・案件単位でグループ化してログとGoogle Chatに出力する。
  * 管理者マスタで顧客名のみのレコードにも対応し、案件名が未指定の場合にフォールバックとして使用。
+ * 対象月を前月から確認し、存在しなければ前々月を確認。どちらもなければエラー通知。
  * @author T.Yoshida
  * @throws {Error} スプレッドシートやフォルダが見つからない場合、またはGoogle Chat送信時にエラーが発生した場合
  */
@@ -33,13 +34,6 @@ function checkNamesInSheets() {
   const adminCaseNameColumn = 2;
   const adminNameColumn = 3;
 
-  // 実行日の前月を計算し、ファイル名を動的に生成
-  const today = new Date();
-  const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const year = prevMonth.getFullYear();
-  const month = (prevMonth.getMonth() + 1).toString().padStart(2, '0');
-  const fileNamePrefix = `${year}.${month}_`;
-
   // BP情報一覧のファイルID
   const spreadsheetIdB = PropertiesService.getScriptProperties().getProperty('BPICHIRAN_FILE_ID');
   // BP情報一覧のシート名
@@ -49,6 +43,38 @@ function checkNamesInSheets() {
 
   // Google ChatのWebhook URL（外部チャット用）
   const chatWebhookUrl = PropertiesService.getScriptProperties().getProperty('CHAT_OUTER_WEBHOOKURL');
+
+  // =========================================================================
+  // 対象月決定ロジック（前月 → 前々月を確認）
+  // =========================================================================
+  const today = new Date();
+  let targetYear, targetMonth;
+  let found = false;
+
+  // 前月を試す
+  let prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  targetYear = prevMonth.getFullYear();
+  targetMonth = (prevMonth.getMonth() + 1).toString().padStart(2, '0');
+  if (checkFilesExist(folderIdA, `${targetYear}.${targetMonth}_`, departmentSuffixes)) {
+    found = true;
+  } else {
+    // 前々月を試す
+    let prevPrevMonth = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    targetYear = prevPrevMonth.getFullYear();
+    targetMonth = (prevPrevMonth.getMonth() + 1).toString().padStart(2, '0');
+    if (checkFilesExist(folderIdA, `${targetYear}.${targetMonth}_`, departmentSuffixes)) {
+      found = true;
+    }
+  }
+
+  if (!found) {
+    const errorMessage = `エラー：前月および前々月のユ別ファイルが見つかりませんでした。スクリプトを終了します。`;
+    Logger.log(errorMessage);
+    sendToChat(chatWebhookUrl, errorMessage);
+    return;
+  }
+
+  Logger.log(`対象年月: ${targetYear}.${targetMonth}`);
 
   // =========================================================================
   // メイン処理
@@ -83,7 +109,7 @@ function checkNamesInSheets() {
     const folder = DriveApp.getFolderById(folderIdA);
     const filesToProcess = [];
     for (const suffix of departmentSuffixes) {
-      const fileName = `${fileNamePrefix}${suffix}`;
+      const fileName = `${targetYear}.${targetMonth}_${suffix}`;
       const fileIterator = folder.getFilesByName(fileName);
       if (fileIterator.hasNext()) {
         filesToProcess.push(fileIterator.next());
@@ -184,7 +210,7 @@ function checkNamesInSheets() {
     }
 
     // 通知メッセージを構築
-    let chatMessageHeader = `@all ${year}年${month}月のユ別に記載されている要員が、すべてBP情報一覧に登録済であることのチェックを行いました。以下の未登録者が見つかりました。管理者の方は対応をお願いします。 \n`;
+    let chatMessageHeader = `@all ${targetYear}年${targetMonth}月のユ別に記載されている要員が、すべてBP情報一覧に登録済であることのチェックを行いました。以下の未登録者が見つかりました。管理者の方は対応をお願いします。 \n`;
     chatMessageHeader += "以下担当者の入力がされていません。改善が見られない場合は上長から催促お願いします。";
     let chatMessageBody = '';
 
@@ -241,6 +267,27 @@ function checkNamesInSheets() {
     Logger.log(errorMessage);
     sendToChat(chatWebhookUrl, errorMessage);
   }
+}
+
+/**
+ * 指定プレフィックスで始まるファイルがフォルダ内に存在するかを確認（部門ごと）
+ * @param {string} folderId 
+ * @param {string} prefix 年月プレフィックス（例: '2025.11_'）
+ * @param {Array<string>} suffixes 部門サフィックス
+ * @return {boolean} 最低1つのファイルが存在すればtrue
+ */
+function checkFilesExist(folderId, prefix, suffixes) {
+  const folder = DriveApp.getFolderById(folderId);
+  let exists = false;
+  for (const suffix of suffixes) {
+    const fileName = `${prefix}${suffix}`;
+    const fileIterator = folder.getFilesByName(fileName);
+    if (fileIterator.hasNext()) {
+      exists = true;
+      break; // 1つでも存在すればOK
+    }
+  }
+  return exists;
 }
 
 /**
