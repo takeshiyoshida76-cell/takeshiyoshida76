@@ -39,12 +39,19 @@ function getCredentials() {
 
 /**
  * JST現在日時とyyyyMMdd文字列を取得
- * @return {Object} { date: Date, dateStr: string }
+ * @return {Object} { date: Date (JST準拠), dateStr: string }
  */
 function getCurrentJSTAndDateString() {
   const now = new Date();
   const dateStr = Utilities.formatDate(now, "JST", "yyyyMMdd");
-  const date = new Date(now); // JST に変換せずにそのまま使用（必要に応じて調整）
+  
+  // dateStrからJSTの日付をDateオブジェクトとして作成
+  const year = parseInt(dateStr.substring(0, 4), 10);
+  const month = parseInt(dateStr.substring(4, 6), 10) - 1;  // 月は0ベース
+  const day = parseInt(dateStr.substring(6, 8), 10);
+  
+  const date = new Date(year, month, day, 0, 0, 0);  // JSTの日付0時0分0秒
+  
   return { date, dateStr };
 }
 
