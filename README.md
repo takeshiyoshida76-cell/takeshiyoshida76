@@ -4,9 +4,12 @@
 [![GitHub followers](https://img.shields.io/github/followers/takeshiyoshida76-cell?style=social)](https://github.com/takeshiyoshida76-cell)
 [![X](https://img.shields.io/badge/X-@RunningTsum-black?logo=x)](https://x.com/RunningTsum)
 
-> **"fuzzy and stoic"**  
-> Life’s messy. Embrace the blur (*fuzzy*). Keep moving (*stoic*).  
-> I automate chaos so you don’t have to.
+### "fuzzy and stoic" ###
+Emotionally flexible, structurally disciplined.
+
+I focus on:
+- Adding intelligence to routine work  
+- Designing obligations to be sustainable and enjoyable
 
 ---
 
@@ -14,7 +17,7 @@
 
 | Category | Details |
 |--------|---------|
-| **Certs** | AWS SAA-C03 · Azure AZ-900 · AZ-104 (Dec target) · IPA AP & FE |
+| **Certs** | AWS SAA-C03 · Azure AZ-900 · AZ-104 (Jan-2026 target) · IPA AP & FE |
 | **Focus** | Automation, cloud, polyglot code, AI that *just works* |
 | **Mission** | Ship solid tools that survive real-world fuzziness |
 
@@ -25,7 +28,7 @@
 | Project | Tech | Vibe |
 |--------|------|------|
 | **AKASHI Auto** | Google Apps Script | Logs in, grabs timesheets, survives WAF — docs included |
-| **16 Languages** | Python → COBOL | Syntax playground. Learn by comparison |
+| **16 Languages** | COBOL, C, Java, Python, Go etc | Syntax playground. Learn by comparison |
 | **AI Othello** | Pure logic | Thinks 5 moves ahead. No fluff |
 | **Daily Report AI** | Lambda + Gemini + Gmail | Summarizes, emails, skips holidays |
 | **Next Up** | Azure Functions + React | Workflow demo. Coming soon-ish |
