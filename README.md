@@ -4,8 +4,8 @@
 [![GitHub followers](https://img.shields.io/github/followers/takeshiyoshida76-cell?style=social)](https://github.com/takeshiyoshida76-cell)
 [![X](https://img.shields.io/badge/X-@RunningTsum-black?logo=x)](https://x.com/RunningTsum)
 
-### "fuzzy and stoic" ###
-Emotionally flexible, structurally disciplined.
+### "fuzzy and stoic"
+Minimal roles, Maximum autonomy.
 
 I focus on:
 - Adding intelligence to routine work  
