@@ -9,6 +9,7 @@ import holidays
 import requests
 import google.auth
 import time
+import random
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from email.mime.text import MIMEText
@@ -45,34 +46,36 @@ def lambda_handler(event, context):
     email_subject = f"【日報】{date_str}：{your_name}"
 
     jp_holidays = holidays.JP()
-    if today in jp_holidays:
-        print(f"今日は祝日 ({jp_holidays[today]}) なので、メールを送信しません。")
+    if today in jp_holidays or is_year_end_holiday(today):
+        reason = jp_holidays.get(today, "年末年始休暇")
+        print(f"今日は休業日 ({reason}) なので、メールを送信しません。")
         return {
             'statusCode': 200,
-            'body': json.dumps('今日は祝日のため、メール送信をスキップしました。')
+            'body': json.dumps('今日は休業日のため、メール送信をスキップしました。')
         }
 
+    # Gemini処理（例外時もメール継続）
+    generated_content = ""
+    generated_content_header = ""
     try:
-        # Gemini APIを呼び出して、要約とアクションを生成
-        # エラーが発生した場合も、処理を継続するようにtry-exceptブロックで囲む
-        try:
-            generated_content = generate_summary_and_actions_with_gemini(report_text)
-            # 要約・アクションのヘッダーを付加（空行を調整）
+        generated_content = generate_summary_and_actions_with_gemini(report_text)
+        if generated_content:
             generated_content_header = "\n\n要約と次へのアクション案(自動生成):\n"
-        except Exception as e:
-            print(f"Gemini API呼び出し中にエラーが発生しました。要約を付加せずにメールを送信します。エラー: {e}")
-            generated_content = ""
-            generated_content_header = ""
+        else:
+            print("Gemini API全失敗 → 要約なしでメール送信継続")
+    except Exception as e:
+        print(f"Gemini API呼び出し中にエラーが発生しました。要約を付加せずにメールを送信します。エラー: {e}")
 
-        # 文章組み立て
-        email_body = report_text + generated_content_header + generated_content
+    # メール本文組み立て（常に実行）
+    email_body = report_text + generated_content_header + generated_content  # generated_contentは空でもOK
 
-        # 認証情報を取得してメール送信
+    # 認証/送信（例外時も継続）
+    try:
         credentials = get_credentials()
         send_email(sender_email, recipient_email, email_subject, email_body, credentials, cc_email)
-        
+        print(f"メールを送信しました。宛先: {recipient_email}")
     except Exception as e:
-        print(f"Lambda 関数エラー: {e}")
+        print(f"メール送信エラー: {e}")
         return {
             'statusCode': 500,
             'body': json.dumps(f'メール送信エラー: {e}')
@@ -83,106 +86,141 @@ def lambda_handler(event, context):
         'body': json.dumps('メール送信処理を実行しました。詳細は CloudWatch Logs を確認してください。')
     }
 
+def is_year_end_holiday(date):
+    """
+    12/30〜1/3 を年末年始休暇として判定
+    """
+    if date.month == 12 and date.day >= 30:
+        return True
+    if date.month == 1 and date.day <= 3:
+        return True
+    return False
+
 def generate_summary_and_actions_with_gemini(text):
-    """
-    Gemini APIを呼び出して、テキストの要約とアクションを生成します。
-    一時的なエラー（503など）に対して最大3回リトライします。
-    """
-    # 環境変数からAPIキーを取得
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
-        raise ValueError("環境変数 'GEMINI_API_KEY' が設定されていません。")
+        raise ValueError("GEMINI_API_KEY が未設定です")
 
-    # APIキーをクエリパラメータに追加
     #GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent"
     #GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent"
-    # Geminiへのプロンプトを一つのリクエストにまとめる
-    prompt = f"""
-    あなたは日報を分析するAIです。
-    まず、次の5つの分析スタイルのうちどれか1つ、あるいは新しい視点を考え出してください。
-    ・リスク検知（懸念点を洗い出し、対策を提案）
-    ・成果最大化（成功事例を強調し、伸ばす方向を示す）
-    ・チーム連携（人・役割のつながりに注目）
-    ・戦略的思考（今後の展開・優先順位に焦点を当てる）
-    ・自己改善（自分の成長や仕事の進め方の改善に焦点）
-    ただし、上記に限らず、あなた自身で「今日はこの観点で読むと面白い」と思うテーマを自由に作ってもかまいません。
-    次に、選んだ観点に沿って、以下のフォーマットで出力してください。余計な前置きや説明は一切入れないでください。
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+    max_retries = 2
+    base_delay = 30
 
-    出力形式:
-    要約:
-    [要約を2〜4行程度にまとめ、1行が長くなりすぎないよう適度に改行してください]
+    def call_gemini(prompt, step_name):
+        data = {"contents": [{"parts": [{"text": prompt}]}]}
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(GEMINI_API_URL, headers=headers, json=data, timeout=30)
 
-    テーマ:
-    - [上記テーマを1行で完結に]
+                if response.status_code == 200:
+                    try:
+                        result = response.json()
+                        if 'candidates' in result and result['candidates']:
+                            output = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                            print(f"【{step_name}成功】")
+                            return output
+                        else:
+                            print(f"【{step_name}】候補なし")
+                    except json.JSONDecodeError:
+                        print(f"【{step_name}】JSONパース失敗")
+                
+                elif response.status_code >= 500:
+                    error_msg = "詳細不明"
+                    try:
+                        error_msg = response.text[:100]
+                    except:
+                        pass
+                    print(f"【{step_name}】{response.status_code}エラー: {error_msg}（試行{attempt+1}/{max_retries}）。リトライ...")
+                
+                elif response.status_code == 429:
+                    retry_after = response.headers.get('Retry-After', base_delay)
+                    try:
+                        delay = int(retry_after)
+                    except:
+                        delay = base_delay
+                    print(f"【{step_name}】429 Rate Limit（試行{attempt+1}/{max_retries}）。{delay}秒待機...")
+                    time.sleep(delay)
+                    continue
+                
+                else:
+                    print(f"【{step_name}】{response.status_code}エラー: {response.text[:100]}")
+                    return ""
 
-    アクション案:
-    - [アクション1]
-    - [アクション2]
-    - [アクション3]
-    
+            except requests.exceptions.Timeout:
+                print(f"【{step_name}】タイムアウト（試行{attempt+1}/{max_retries}）。リトライ...")
+            except requests.exceptions.ConnectionError as e:
+                print(f"【{step_name}】接続エラー（試行{attempt+1}/{max_retries}）: {e}")
+            except Exception as e:
+                print(f"【{step_name}】予期せぬ例外（試行{attempt+1}/{max_retries}）: {e}")
+
+            if attempt < max_retries - 1:
+                try:
+                    delay = base_delay + random.uniform(0, 10)
+                    print(f"【{step_name}】{delay:.1f}秒待機...")
+                    time.sleep(delay)
+                except Exception as e:
+                    print(f"【{step_name}】待機エラー: {e} → 30秒固定待機")
+                    time.sleep(30)
+        
+        print(f"【{step_name}】全{max_retries}回リトライ失敗")
+        return ""  # 失敗時は空文字列（メールに形跡なし）
+
+    THEMES = [
+        "リスク検知",
+        "成果最大化",
+        "チーム連携",
+        "戦略的思考",
+        "自己改善",
+        "負荷分散",
+        "属人性排除",
+        "継続性設計",
+        "意思決定の簡素化",
+        "観測と可視化",
+        "運用効率",
+    ]
+
+    # 段階1: 要約
+    summary_prompt = f"""
+    日報の要約を箇条書きで2〜4行でまとめてください。
+    各行は1トピックのみ、40文字程度まで。
+    文末は「。」で統一し、Markdown記号（*, -, •）は使わないでください。
+    余計な前置きや説明は一切入れないでください。
+
     日報テキスト:
     {text}
     """
+    summary = call_gemini(summary_prompt, "要約生成")
+    if not summary:
+        return ""
 
-    data = {
-        "contents": [{"parts": [{"text": prompt}]}]
-    }
-    
-    # APIキーを渡すためのヘッダーを作成
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": api_key
-    }
+    # 段階2: 視点
+    theme = random.choice(THEMES)
 
-    max_retries = 3
-    base_delay = 2  # 秒
+    # 段階3: アクション
+    action1_prompt = f"""
+    以下の日報本文と視点に基づき、現実的で簡潔なアクション案を3つ提案してください。
+    各アクションは1文・60文字以内を目安にしてください。
+    背景説明や理由は不要です。
 
-    for attempt in range(max_retries):
-        try:
-            response = requests.post(GEMINI_API_URL, headers=headers, json=data, timeout=30)
-            
-            # 成功（2xx）なら即返却
-            if response.status_code == 200:
-                result = response.json()
-                if 'candidates' in result and len(result['candidates']) > 0:
-                    raw_output = result['candidates'][0]['content']['parts'][0]['text']
-                    cleaned = raw_output.strip().replace('```', '').replace('***', '')
-                    return cleaned
-                else:
-                    print(f"Gemini API応答に候補がありません（試行{attempt+1}）。応答: {result}")
-                    return "Geminiからの応答が空でした。"
+    出力は厳密に以下の形式で。
 
-            # 5xx系エラー or 503 → リトライ
-            elif response.status_code >= 500:
-                print(f"Gemini API {response.status_code} エラー（試行{attempt+1}/{max_retries}）。リトライします...")
-            
-            # 429（Rate Limit）もリトライ対象に追加
-            elif response.status_code == 429:
-                print(f"Gemini API 429 Rate Limit（試行{attempt+1}/{max_retries}）。リトライします...")
+    - [アクション1]
+    - [アクション2]
+    - [アクション3]
 
-            else:
-                # 4xx系はリトライせず即失敗（APIキー不正など）
-                print(f"Gemini API {response.status_code} エラー（リトライせず）。応答: {response.text}")
-                return "Gemini API呼び出しに失敗しました（復旧不能エラー）。"
+    日報本文:
+    {text}
 
-        except requests.exceptions.Timeout:
-            print(f"Gemini API タイムアウト（試行{attempt+1}/{max_retries}）。リトライします...")
-        except requests.exceptions.ConnectionError:
-            print(f"Gemini API 接続エラー（試行{attempt+1}/{max_retries}）。リトライします...")
-        except Exception as e:
-            print(f"Gemini API その他例外（試行{attempt+1}/{max_retries}）: {e}。リトライします...")
+    視点:
+    {theme}
+    """
+    actions = call_gemini(action1_prompt, "アクション生成") or ""  # 失敗時は空
 
-        # 最後の試行でなければバックオフ待機
-        if attempt < max_retries - 1:
-            delay = base_delay * (2 ** attempt)  # 指数バックオフ: 2s → 4s → 8s
-            print(f"{delay}秒待機してリトライ...")
-            time.sleep(delay)
-        else:
-            print("全リトライ失敗。要約なしでメール送信を継続します。")
-
-    # 全失敗時は空文字を返す（呼び出し元でフォールバック）
-    return ""
+    # 最終出力（空文字列耐性で安全、失敗文言なし）
+    result = f"要約:\n{summary}\n\nテーマ:\n- {theme}\n\nアクション案:\n{actions}"
+    return result if result.strip() else ""  # 空なら全体空
 
 def get_credentials():
     """
