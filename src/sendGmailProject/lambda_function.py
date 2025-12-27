@@ -10,6 +10,7 @@ import requests
 import google.auth
 import time
 import random
+import re
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from email.mime.text import MIMEText
@@ -101,6 +102,11 @@ def generate_summary_and_actions_with_gemini(text):
     if not api_key:
         raise ValueError("GEMINI_API_KEY が未設定です")
 
+    # 固有名詞をGeminiに送る前にマスキング
+    masking_rules = load_masking_rules()
+    masked_text = apply_masking(text, masking_rules)
+    masked_text = final_defense_masking(masked_text)
+
     #GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent"
     #GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent"
     GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
@@ -189,7 +195,7 @@ def generate_summary_and_actions_with_gemini(text):
     余計な前置きや説明は一切入れないでください。
 
     日報テキスト:
-    {text}
+    {masked_text}
     """
     summary = call_gemini(summary_prompt, "要約生成")
     if not summary:
@@ -211,7 +217,7 @@ def generate_summary_and_actions_with_gemini(text):
     - [アクション3]
 
     日報本文:
-    {text}
+    {masked_text}
 
     視点:
     {theme}
@@ -220,7 +226,68 @@ def generate_summary_and_actions_with_gemini(text):
 
     # 最終出力（空文字列耐性で安全、失敗文言なし）
     result = f"要約:\n{summary}\n\nテーマ:\n- {theme}\n\nアクション案:\n{actions}"
+
+    # マスキングから復元
+    result = restore_masking(result, masking_rules)
+
     return result if result.strip() else ""  # 空なら全体空
+
+def load_masking_pairs():
+    """
+    環境変数 MASKING_PAIRS を読み込み、
+    [(before, after), ...] のリストを返す
+    """
+    raw = os.environ.get("MASKING_PAIRS", "")
+    pairs = []
+    for item in raw.split("|"):
+        if "=" in item:
+            before, after = item.split("=", 1)
+            pairs.append((before, after))
+    return pairs
+
+def apply_masking(text, pairs):
+    """
+    置換前 → 置換後
+    """
+    for before, after in pairs:
+        text = text.replace(before, after)
+    return text
+
+def restore_masking(text, pairs):
+    """
+    置換後 → 置換前
+    ※ 衝突防止のため長い文字列から戻す
+    """
+    for before, after in pairs:
+        text = text.replace(after, before)
+    return text
+
+def final_defense_masking(text):
+    """
+    最終防衛マスキング（不可逆）
+    ・会社名らしき表現をすべて「◎◎」で潰す
+    """
+
+    # ① アルファベット3文字以上（会社略称対策）
+    text = re.sub(r'\b[A-Z]{3,}\b', '◎◎', text)
+
+    # ② 「株式会社」の前側を2文字マスキング
+    # 例: マイクロソフト株式会社 → マイクロソ◎◎株式会社
+    text = re.sub(r'(.{2})株式会社', '◎◎株式会社', text)
+
+    # ③ 「株式会社」の後側を2文字マスキング
+    # 例: 株式会社Ｑ → 株式会社◎◎
+    text = re.sub(r'株式会社(.{2})', '株式会社◎◎', text)
+
+    # ④ 「社」の前側を2文字マスキング
+    # 例: マイクロソフト社 → マイクロソ◎◎社
+    text = re.sub(r'(.{2})社', '◎◎社', text)
+
+    # ⑤ 「社」の後側を2文字マスキング
+    # 例: Ｑ社 → ◎◎社
+    text = re.sub(r'社(.{2})', '社◎◎', text)
+
+    return text
 
 def get_credentials():
     """
