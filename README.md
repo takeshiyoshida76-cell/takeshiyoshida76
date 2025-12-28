@@ -45,6 +45,15 @@ I focus on:
 
 ---
 
+### Related Repositories
+
+- [AZ-104 Mini Quiz](https://github.com/takeshiyoshida76-cell/azquiz)  
+  A simple quiz app to test your Azure knowledge, created for personal learning purposes.
+- [Attendance Compliance Mini Quiz](https://github.com/takeshiyoshida76-cell/moc-quiz)  
+  A simple quiz app to test your Attendance compliance , created for personal learning purposes.
+
+---
+
 ### Skills Mind Map
 ```mermaid
 graph TD
