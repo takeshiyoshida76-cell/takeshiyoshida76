@@ -103,7 +103,7 @@ def generate_summary_and_actions_with_gemini(text):
         raise ValueError("GEMINI_API_KEY が未設定です")
 
     # 固有名詞をGeminiに送る前にマスキング
-    masking_rules = load_masking_rules()
+    masking_rules = load_masking_pairs()
     masked_text = apply_masking(text, masking_rules)
     masked_text = final_defense_masking(masked_text)
 
