@@ -23,7 +23,7 @@ const ROOT_JA_URL = 'https://atnd.ak4.jp/ja';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
 // ==============================================================================
-// 2. ユーティリティ関数 (元スクリプト流用)
+// 2. ユーティリティ関数
 // ==============================================================================
 /**
  * スクリプトプロパティから認証情報を取得
@@ -444,6 +444,36 @@ function cookieStringToMap(cookieStr) {
 }
 
 /**
+ * スクリプトプロパティからURLを取得し、特定日マスタを取得
+ * @return {Object} { "20260106": "部会議" }
+ */
+function getSpecialDaysMaster() {
+  const url = PropertiesService.getScriptProperties().getProperty('EVENT_SHEET_URL');
+  if (!url) {
+    Logger.log('警告: EVENT_SHEET_URL が設定されていません。');
+    return {};
+  }
+  try {
+    const ss = SpreadsheetApp.openByUrl(url);
+    const sheet = ss.getSheets()[0]; // 1番目のシート
+    const data = sheet.getDataRange().getValues();
+    const master = {};
+    for (let i = 1; i < data.length; i++) {
+      const dateObj = data[i][0];
+      const eventName = data[i][1];
+      if (dateObj instanceof Date && eventName) {
+        const yyyymmdd = Utilities.formatDate(dateObj, "JST", "yyyyMMdd");
+        master[yyyymmdd] = eventName.toString();
+      }
+    }
+    return master;
+  } catch (e) {
+    Logger.log('エラー: スプレッドシートの取得に失敗しました。' + e.message);
+    return {};
+  }
+}
+
+/**
  * JSから記録解析
  * @param {string} jsText
  * @param {string} pageHtml
@@ -580,9 +610,9 @@ function parseRecordsFromJs(jsText, pageHtml, empId) {
   return days.length > 0 ? { name, formatType, days } : null;
 }
 
-/**
- * メイン: ログイン → 月次チェック
- */
+// ==============================================================================
+// 3. メイン
+// ==============================================================================
 function main() {
   const sessionCookie = loginToAkashiWithRetry();
   if (!sessionCookie) {
@@ -601,6 +631,9 @@ function checkMonthlyAttendance(sessionCookie) {
   const errorsByEmployee = {};
   let totalErrors = 0;
   const { dateStr: todayStr } = getCurrentJSTAndDateString();
+
+  // 特定日マスタの取得
+  const specialDays = getSpecialDaysMaster();
 
   let res = fetchPageHTML(cookieMap, MANAGER_URL);
   if (!res || !res.html || res.html.includes('ログイン')) {
@@ -641,6 +674,19 @@ function checkMonthlyAttendance(sessionCookie) {
 
       let errorMessage = '';
 
+      // 5. 特定日イベントの理由記載チェック
+      // 条件: マスタに日付がある 且つ 勤務状況に「休」が含まれない
+      if (specialDays[dateStr] && !day.status.includes('休')) {
+        const targetEventString = specialDays[dateStr];
+        // カンマで分割して配列にする
+        const keywords = targetEventString.split(',').map(k => k.trim());
+        // 配列の中のどれか1つでも理由欄(reason)に含まれているかチェック
+        const isOk = keywords.some(keyword => reason.includes(keyword));
+        if (!isOk) {
+          errorMessage = `「${keywords[0]}」の開催日ですが、不参加でしょうか`;
+        }
+      }
+
       // 1. 打刻忘れ → 一律警告
       if ((!isTime(day.clockIn) && isTime(day.actualIn)) || (!isTime(day.clockOut) && isTime(day.actualOut))) {
         errorMessage = '打刻忘れがあります（理由が記載されていても要確認）';
@@ -672,7 +718,7 @@ function checkMonthlyAttendance(sessionCookie) {
           if (lateMin >= 240 && breakMin > 30) errorMessage = '休憩時間が早退時間として換算されている可能性あり';
         }
 
-        // 4. その他すべてのルール（変更なし）
+        // 4. その他すべてのルール
         if (isTime(day.clockOut) && isTime(day.plannedOut) && timeToMinutes(day.clockOut) < timeToMinutes(day.plannedOut) && !checkReason(reason)) {
           errorMessage = '退勤予定前に打刻されているが理由が記載されていない可能性あり';
         }
