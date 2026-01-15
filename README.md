@@ -17,7 +17,7 @@ I focus on:
 
 | Category | Details |
 |--------|---------|
-| **Certs** | AWS SAA-C03 · Azure AZ-900 · AZ-104 (Jan-2026 target) · IPA AP & FE |
+| **Certs** | AWS SAA-C03 (May-2025) · Azure AZ-900 (Oct-2025) · AZ-104 (Feb-2026 target) · IPA AP (Nov-2012) & FE (May-2001) |
 | **Focus** | Automation, cloud, polyglot code, AI that *just works* |
 | **Mission** | Ship solid tools that survive real-world fuzziness |
 
