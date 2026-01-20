@@ -15,7 +15,7 @@ function notifyRakurakuToChat() {
   const label = GmailApp.getUserLabelByName(LABEL_NAME) || GmailApp.createLabel(LABEL_NAME);
   
   // 検索クエリの組み立て
-  const SEARCH_QUERY = `from:${RAKURAKU_FROM} "承認依頼" -label:${LABEL_NAME} older_than:2m`;
+  const SEARCH_QUERY = `from:${RAKURAKU_FROM} "承認依頼" -label:${LABEL_NAME}`;
   const threads = GmailApp.search(SEARCH_QUERY);
   
   if (threads.length === 0) {
