@@ -513,49 +513,47 @@ function getClosingDate() {
 }
 
 /**
- * 前日から締め日までの営業日数を計算します。
+ * 今日から締め日までの営業日数を計算します。
  * Google公式の「日本の祝日」カレンダーを参照し、土日祝日を除外します。
  * * @param {Date} closingDate 締め日のDateオブジェクト (getClosingDateで取得)
  * @returns {number} 前日から締め日までの営業日数
  * @throws {Error} 日本の祝日カレンダーへのアクセスに失敗した場合（CalendarApp権限不足など）
  */
 function countBusinessDaysToClosing(closingDate) {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 今日の 00:00:00
 
-  // Google公式「日本の祝日」カレンダーから祝日を取得
-  const holidayCalendar = CalendarApp.getCalendarById("ja.japanese#holiday@group.v.calendar.google.com");
-  if (!holidayCalendar) {
-    throw new Error("日本の祝日カレンダーにアクセスできません。スクリプトにカレンダー権限を付与してください。");
+  const targetDate = new Date(closingDate);
+  targetDate.setHours(0, 0, 0, 0); // 締め日の 00:00:00
+
+  // 【重要】今日が締め日を過ぎている場合は、即座に0を返す
+  if (today > targetDate) {
+    return 0;
   }
 
-  // 検索期間を yesterday から closingDate の翌日までとする
-  const searchStart = new Date(yesterday);
-  const searchEnd = new Date(closingDate);
+  // Google公式「日本の祝日」カレンダー
+  const holidayCalendar = CalendarApp.getCalendarById("ja.japanese#holiday@group.v.calendar.google.com");
+  
+  // 検索範囲：今日から締め日まで
+  // getEventsの第2引数はその時刻を含まないため、targetDateの翌日を指定
+  const searchEnd = new Date(targetDate);
   searchEnd.setDate(searchEnd.getDate() + 1);
+  const holidayEvents = holidayCalendar.getEvents(today, searchEnd);
+  
+  // 祝日リストを Set に変換
+  const holidaySet = new Set(holidayEvents.map(event => 
+    Utilities.formatDate(event.getStartTime(), "JST", "yyyy-MM-dd")
+  ));
 
-  const holidayEvents = holidayCalendar.getEvents(searchStart, searchEnd);
-  // 祝日リストを Set に変換 ("YYYY-MM-DD"形式)
-  const holidaySet = new Set(holidayEvents
-    .filter(event => event.isAllDayEvent()) 
-    .map(event => {
-      const date = event.getStartTime();
-      date.setHours(0, 0, 0, 0); 
-      return date.toISOString().slice(0, 10); 
-    })
-  ); 
-
-  let current = new Date(yesterday);
-  current.setHours(0, 0, 0, 0);
+  let current = new Date(today);
   let count = 0;
 
-  // 前日から締め日までをループ
-  while (current <= closingDate) {
-    const dateStr = current.toISOString().slice(0, 10);
-    const dayOfWeek = current.getDay(); // 日曜日=0, 土曜日=6
+  // 今日から締め日までをループ（今日が1/14なら1/14から開始）
+  while (current <= targetDate) {
+    const dateStr = Utilities.formatDate(current, "JST", "yyyy-MM-dd");
+    const dayOfWeek = current.getDay(); // 0:日, 6:土
 
-    // 土日 (0, 6) ではなく、祝日でもない → 営業日
+    // 土日祝ではない場合のみカウント
     if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaySet.has(dateStr)) {
       count++;
     }
