@@ -97,9 +97,21 @@ function checkNamesInSheets() {
       const adminName = adminValues[i][adminNameColumn - 1]?.toString().trim();
       if (customer && adminName) {
         // 顧客名＋案件名（案件名が空の場合は顧客名のみ）のキーで管理者を登録
-        const key = caseName ? `${customer}|${caseName}` : `${customer}|`;
-        adminMap.set(key, adminName);
-        Logger.log(`管理者マスタ登録: キー=${key}, 管理者=${adminName}`);
+        // 1. 顧客名＋案件名のフルセット
+        const fullKey = `${customer}|${caseName}`;
+        adminMap.set(fullKey, adminName);
+        // 2. 案件名のみのフォールバック用（案件名がある場合のみ）
+        if (caseName) {
+          const caseOnlyKey = `|${caseName}`; // 顧客名を空にする
+          if (!adminMap.has(caseOnlyKey)) {
+            adminMap.set(caseOnlyKey, adminName);
+          }
+        }
+        // 3. 顧客名のみのフォールバック用
+        const customerOnlyKey = `${customer}|`;
+        if (!adminMap.has(customerOnlyKey)) {
+          adminMap.set(customerOnlyKey, adminName);
+        }
       } else {
         Logger.log(`警告：管理者マスタの行${i + 1}に不正なデータ（顧客名=${customer}, 管理者=${adminName}）をスキップ`);
       }
@@ -180,13 +192,22 @@ function checkNamesInSheets() {
             const logMessage = `  見つかりませんでした: 案件名「${caseName}」/ 名前「${name}」/ 顧客「${customer}」/ 所属「${department}」`;
             Logger.log(logMessage);
             
-            // 管理者を特定（顧客名＋案件名を優先、なければ顧客名のみで検索）
-            const adminKey = `${customer}|${caseName}`;
-            let adminName = adminMap.get(adminKey);
-            if (!adminName) {
-              adminName = adminMap.get(`${customer}|`) || '管理者不明';
+            // 管理者を特定（顧客名＋案件名を優先、なければ案件名のみ、顧客名のみで検索）
+            const fullKey = `${customer}|${caseName}`;
+            let adminName = adminMap.get(fullKey);
+
+            if (!adminName && caseName) {
+              // 案件名だけで検索
+              adminName = adminMap.get(`|${caseName}`);
             }
-            
+            if (!adminName) {
+              // 顧客名だけで検索
+              adminName = adminMap.get(`${customer}|`);
+            }
+            if (!adminName) {
+              adminName = '管理者不明';
+            }
+
             // 顧客＋案件をキーとするサブグループを作成
             const subKey = `${customer}|${caseName}`;
             const targetMap = adminName === '管理者不明' ? missingNamesNoAdmin : missingNamesByAdmin;
@@ -210,8 +231,8 @@ function checkNamesInSheets() {
     }
 
     // 通知メッセージを構築
-    let chatMessageHeader = `@all ${targetYear}年${targetMonth}月のユ別に記載されている要員が、すべてBP情報一覧に登録済であることのチェックを行いました。以下の未登録者が見つかりました。管理者の方は対応をお願いします。 \n`;
-    chatMessageHeader += "以下担当者の入力がされていません。改善が見られない場合は上長から催促お願いします。";
+    let chatMessageHeader = `@all ${targetYear}年${targetMonth}月のユ別に記載されている要員が、すべてBP情報一覧に登録済であることのチェックを行いました。以下の未登録者が見つかりました。担当管理者の方は対応をお願いします。 \n`;
+    chatMessageHeader += "担当管理者の表示が誤っている場合は委員会までご連絡お願いします。また、入力の改善が見られない場合は上長から催促お願いします。";
     let chatMessageBody = '';
 
     if (totalMissingCount > 0) {
@@ -240,17 +261,22 @@ function checkNamesInSheets() {
       if (missingNamesNoAdmin.size > 0) {
         chatMessageBody += `【管理者不明】\n`;
         Logger.log(`管理者不明のデータを処理中`);
-        for (const [subKey, data] of missingNamesNoAdmin) {
-          const { customer, caseName, items } = data;
-          if (!items || !Array.isArray(items)) {
-            Logger.log(`エラー：キー=${subKey} のデータにitemsが不正（items=${items}）`);
-            continue; // itemsが不正な場合はスキップ
+        
+        // missingNamesNoAdmin は Map<管理者名, Map<subKey, data>> という構造なので、
+        // まず管理者名（ここでは "管理者不明" のみ）でループし、その中身（subMap）を取り出します。
+        for (const [adminName, adminSubMap] of missingNamesNoAdmin) {
+          for (const [subKey, data] of adminSubMap) {
+            const { customer, caseName, items } = data;
+            if (!items || !Array.isArray(items)) {
+              Logger.log(`エラー：キー=${subKey} のデータにitemsが不正（items=${items}）`);
+              continue;
+            }
+            chatMessageBody += `顧客: ${customer} / 案件名: ${caseName}\n`;
+            items.forEach(item => {
+              chatMessageBody += `  - 名前: ${item.name} / 所属: ${item.department}\n`;
+            });
+            chatMessageBody += `\n`;
           }
-          chatMessageBody += `顧客: ${customer} / 案件名: ${caseName}\n`;
-          items.forEach(item => {
-            chatMessageBody += `  - 名前: ${item.name} / 所属: ${item.department}\n`;
-          });
-          chatMessageBody += `\n`;
         }
       }
     } else {
