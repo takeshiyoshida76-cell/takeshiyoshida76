@@ -364,7 +364,7 @@ function minutesToTime(mins) {
  */
 function checkReason(str) {
   if (!str) return false;
-  const keywords = ['理由', 'ため', '為', 'に基づく', '会議', 'による'];
+  const keywords = ['理由', 'ため', '為', 'に基づく', '会議', 'による', 'につき'];
   return keywords.some(k => str.includes(k));
 }
 
@@ -589,15 +589,15 @@ function parseRecordsFromJs(jsText, pageHtml, empId) {
       return times.length >= lines ? times.slice(0, lines) : times.concat(Array(lines - times.length).fill('--:--'));
     };
 
-    const clockTimes = getTimesFromCell(1, 2);
-    const actualTimes = getTimesFromCell(2, 2);
-    const plannedTimes = getTimesFromCell(3, 2);
-    const statusCell = getCellText(4);
-    const totalTime = getCellText(5);
-    const breakTime = getCellText(6);
-    const nightTime = getCellText(7);
-    let overtime = formatType === 'normal' ? getCellText(8) : (isTime(totalTime) ? minutesToTime(timeToMinutes(totalTime) - 480) : '0:00');
-    const lateTime = getCellText(formatType === 'normal' ? 9 : 8);
+    const clockTimes = getTimesFromCell(2, 2);
+    const actualTimes = getTimesFromCell(3, 2);
+    const plannedTimes = getTimesFromCell(4, 2);
+    const statusCell = getCellText(5);
+    const totalTime = getCellText(6);
+    const breakTime = getCellText(7);
+    const nightTime = getCellText(8);
+    let overtime = formatType === 'normal' ? getCellText(9) : (isTime(totalTime) ? minutesToTime(timeToMinutes(totalTime) - 480) : '0:00');
+    const lateTime = getCellText(formatType === 'normal' ? 10 : 9);
 
     days.push({
       dateStr, clockIn: clockTimes[0], clockOut: clockTimes[1],
@@ -755,9 +755,9 @@ function checkMonthlyAttendance(sessionCookie) {
         if (day.status.includes('振替出勤') && (!checkReason(reason) || !reason.includes('指示'))) {
           errorMessage = '振替出勤にもかかわらず、休出理由または指示者が記載されていない';
         }
-        if (day.status.includes('振替休日') && !['の振休', 'の振替休日'].some(k => reason.includes(k))) {
-          errorMessage = '振替休日にもかかわらず、振替元の日付が記載されていない';
-        }
+        //if (day.status.includes('振替休日') && !['の振休', 'の振替休日'].some(k => reason.includes(k))) {
+        //  errorMessage = '振替休日にもかかわらず、振替元の日付が記載されていない';
+        //}
         if (day.status.includes('休日出勤') && (!checkReason(reason) || !reason.includes('指示'))) {
           errorMessage = '休日出勤にもかかわらず、休出理由または指示者が記載されていない';
         }
