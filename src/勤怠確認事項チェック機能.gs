@@ -26,8 +26,16 @@ function runTaskChecker() {
     // 祝日チェック
     const calendarId = "ja.japanese#holiday@group.v.calendar.google.com";
     const cal = CalendarApp.getCalendarById(calendarId);
-    if (cal.getEventsForDay(today).length > 0) {
-      console.log("祝日のためスキップします。");
+    const events = cal.getEventsForDay(today);
+
+    // イベントの説明文（description）に「祝日」という文字が含まれているかを確認
+    const isHoliday = events.some(event => {
+      const desc = event.getDescription(); // イベントの詳細説明文を取得
+      return desc.includes("祝日");
+    });
+
+    if (isHoliday) {
+      console.log("祝日のためスキップします: " + events[0].getTitle());
       return;
     }
   }
@@ -57,6 +65,7 @@ function runTaskChecker() {
   const TARGET_COL_INDEX = 4; // E列：ステータス
   const TARGET_STATUSES = ['未対応', '再確認'];
   let message = "【勤怠確認事項：対応が必要です】\n";
+  message += 'https://docs.google.com/spreadsheets/d/' + EXCEL_FILE_ID + '\n';
   let hasPending = false;
 
   // 3. 各シートのデータ走査
@@ -87,7 +96,10 @@ function runTaskChecker() {
 
   // 5. 通知送信
   if (hasPending) {
+    console.log("通知対象あり");
     postToWebhook(WEBHOOK_URL, message);
+  } else {
+    console.log("通知対象なし");
   }
 }
 
